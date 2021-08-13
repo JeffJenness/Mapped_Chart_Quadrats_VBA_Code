@@ -1,4 +1,4 @@
-Attribute VB_Name = "Margaret"
+Attribute VB_Name = "Quadrat_Map_Module"
 Option Explicit
 
 Public Sub DeclareWorkspaces(strOrigShapefiles As String, Optional strModifiedRoot As String, _
