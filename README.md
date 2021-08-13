@@ -2,7 +2,7 @@
 This repository contains VBA and ArcObjects code used to analyze plant distributions in digitized quadrats near Flagstaff Arizona, over the years 2002 - 2020.
 This code was used to produce the data presented in the Data Paper "Cover and density of southwestern ponderosa pine understory plants in permanent chart quadrats (2002-2020)" (Moore et al. In Review).
 
-The relevant functions are embedded in larger modules containing other unused functions (17 VBA modules containing 791 functions and 78,912 lines of code).  The primary analytical master function is "RunAsBatch" in the module "ThisDocument_for_VM_2".  This function runs several other functions that do the various steps of the analysis. In particular:
+The relevant functions are embedded in larger modules containing other unused functions (13 VBA modules containing 706 functions and 67,956 lines of code).  The primary analytical master function is "RunAsBatch" in the module "ThisDocument_for_VM_2".  This function runs several other functions that do the various steps of the analysis. In particular:
   1) The function "OrganizeData" in module "ThisDocument_for_VM_2" assembles all original datasets into a single workspace with a common naming convention, and adds verbatim fields to keep track of edits made to data.
   2) The function "ReviseShapefiles" in module "ThisDocument_for_VM_2" corrects species misspellings and misidentifications.
   3) The function "ConvertPointShapefiles" in module "ThisDocument_for_VM_2" converts point features to small polygons, deletes a few extraneous objects, adds a few observations that were missed in the digitizing, switches species designations from Cover to Density or vice-versa if necessary, and rotates quadrats if they were mapped with the wrong orientation.
