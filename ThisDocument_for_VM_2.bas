@@ -1,4 +1,3 @@
-Attribute VB_Name = "ThisDocument_for_VM_2"
 Option Explicit
 ' LAST EDITED APRIL 7 2021
 ' REMEMBER TO DO SEARCH-AND-REPLACE TO CHANGE YEAR TO LATEST YEAR:
