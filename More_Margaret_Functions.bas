@@ -5,33 +5,30 @@ Public Sub RecreateSubsetsOfConvertedDatasets()
 
   Dim strFieldToSplitBy As String
   strFieldToSplitBy = "Site"
-  
-  ' DON'T BRING IN ANY EMPTY GEOMETRIES OR "No Point Species" OR "No Polygon Species"
-  ' NO, THIS HAS CHANGED!  WE WANT EMPTY GEOMETRIES IF SURVEY DONE BUT NO SPECIES OBSERVED.  THIS WILL HELP
-  ' USER DISTINGUISH BETWEEN NO ACTUAL PLANTS VS. NO SURVEY CONDUCTED.
+
   Debug.Print "----------------------------------------"
   Dim lngStart As Long
   lngStart = GetTickCount
-  
+
   Dim pMxDoc As IMxDocument
   Dim pApp As IApplication
   Dim pSBar As IStatusBar
   Dim pProg As IStepProgressor
-  
+
   Set pMxDoc = ThisDocument
   Set pApp = Application
   Set pSBar = pApp.StatusBar
   Set pProg = pSBar.ProgressBar
-  
+
   Dim lngCount As Long
   Dim lngCounter As Long
-  
+
   Dim strCombinePath As String
   Dim strModifiedRoot As String
   Dim strRecreatedModifiedRoot As String
-  
+
   Call DeclareWorkspaces(strCombinePath, strModifiedRoot, , , strRecreatedModifiedRoot)
-  
+
   Dim pWS As IFeatureWorkspace
   Dim pWSFact As IWorkspaceFactory
   Dim pNewFGDBWS As IWorkspace
@@ -40,10 +37,10 @@ Public Sub RecreateSubsetsOfConvertedDatasets()
   Dim pNewFeatShapefileWS As IFeatureWorkspace
   Set pWSFact = New FileGDBWorkspaceFactory
   Set pWS = pWSFact.OpenFromFile(strModifiedRoot & "\Combined_by_Site.gdb", 0)
-  
+
   Set pNewFGDBWS = MyGeneralOperations.CreateOrReturnFileGeodatabase(strRecreatedModifiedRoot & "\Combined_by_Site")
   Set pNewFeatFGDBWS = pNewFGDBWS
-  
+
   If Not aml_func_mod.ExistFileDir(strRecreatedModifiedRoot & "\Shapefiles") Then
     MyGeneralOperations.CreateNestedFoldersByPath (strRecreatedModifiedRoot & "\Shapefiles")
   End If
@@ -55,8 +52,7 @@ Public Sub RecreateSubsetsOfConvertedDatasets()
   Dim strBaseString As String
   Dim strPurpose As String
   More_Margaret_Functions.FillMetadataItems strAbstract, strBaseString, strPurpose
-    
-  ' FIRST GET LIST OF NEW NAMES
+
   Dim pCollOfFClasses As New Collection    ' FOR EACH ID VALUE, WILL CONTAIN VARIANT ARRAY OF [FClass Name, pFClass, pInsertCursor, pInsertBuffer]
   Dim pCollOfShapefiles As New Collection  ' FOR EACH ID VALUE, WILL CONTAIN VARIANT ARRAY OF [FClass Name, pFClass, pInsertCursor, pInsertBuffer]
   Dim varItems() As Variant
@@ -67,85 +63,74 @@ Public Sub RecreateSubsetsOfConvertedDatasets()
   Dim pDataset As IDataset
   Dim strArrayOfGDBNames() As String
   Dim strArrayOfShapefileNames() As String
-  
-  ' SOURCE DATA
+
   Dim pCoverFClass As IFeatureClass
   Dim pCoverFCursor As IFeatureCursor
   Dim pCoverFeature As IFeature
-  
+
   Dim pDensityFClass As IFeatureClass
   Dim pDensityFCursor As IFeatureCursor
   Dim pDensityFeature As IFeature
-  
-  ' NEW COMPREHENSIVE DATA
-  ' ...GEODATABASE
-  ' ......COVER
+
   Dim pNewCoverGDBFClass As IFeatureClass
   Dim pNewGDBCoverFCursor As IFeatureCursor
   Dim varNewGDBCoverFieldIndexes() As Variant
   Dim pNewGDBCoverFBuffer As IFeatureBuffer
-  ' ......DENSITY
   Dim pNewDensityGDBFClass As IFeatureClass
   Dim pNewGDBDensityFCursor As IFeatureCursor
   Dim varNewGDBDensityFieldIndexes() As Variant
   Dim pNewGDBDensityFBuffer As IFeatureBuffer
-  ' ...SHAPEFILE
-  ' ......COVER
   Dim pNewCoverShapefile As IFeatureClass
   Dim pNewShpCoverFCursor As IFeatureCursor
   Dim varNewShpCoverFieldIndexes() As Variant
   Dim pNewShpCoverFBuffer As IFeatureBuffer
-  ' ......DENSITY
   Dim pNewDensityShapefile As IFeatureClass
   Dim pNewShpDensityFCursor As IFeatureCursor
   Dim varNewShpDensityFieldIndexes() As Variant
   Dim pNewShpDensityFBuffer As IFeatureBuffer
-  
-  ' NEW SITE DATA:  DON'T NEED TO SEPARATE INTO COVER VS. DENSITY
-  ' ...GEODATABASE
+
   Dim pNewGeneralGDBFClass As IFeatureClass
   Dim pNewGDBGeneralFCursor As IFeatureCursor
   Dim varNewGDBGeneralFieldIndexes() As Variant
   Dim pNewGDBGeneralFBuffer As IFeatureBuffer
-  ' ...SHAPEFILE
   Dim pNewGeneralShpFClass As IFeatureClass
   Dim pNewShpGeneralFCursor As IFeatureCursor
   Dim varNewShpGeneralFieldIndexes() As Variant
   Dim pNewShpGeneralFBuffer As IFeatureBuffer
-  
+
   Dim lngIDIndex As Long
   Dim strIDVal As String
   Dim lngSpeciesIndex As Long
   Dim strSpecies As String
   Dim varVal As Variant
   Dim booCheckIfShouldContinue As Boolean
-  
+
   Set pCoverFClass = pWS.OpenFeatureClass("Cover_All")
   Set pDensityFClass = pWS.OpenFeatureClass("Density_All")
-  
+
   lngCount = pCoverFClass.FeatureCount(Nothing) + pDensityFClass.FeatureCount(Nothing)
   lngCounter = 0
   pSBar.ShowProgressBar "Pass 1:  Transferring Cover features...", 0, lngCount, 1, True
   pProg.position = 0
-  
+
   Set pCoverFCursor = pCoverFClass.Search(Nothing, False)
   Set pCoverFeature = pCoverFCursor.NextFeature
   lngIDIndex = pCoverFClass.FindField(strFieldToSplitBy)
   lngSpeciesIndex = pCoverFClass.FindField("Species")
-  
+
   FillVariousFClassObjects pCollOfFClasses, "Cover_All", pNewFeatFGDBWS, pCoverFClass, pNewCoverGDBFClass, _
       pNewGDBCoverFCursor, pNewGDBCoverFBuffer, strNewFClassName, varNewGDBCoverFieldIndexes, strArrayOfGDBNames, _
       strAbstract, strBaseString, strPurpose, pMxDoc
-      
+
   FillVariousFClassObjects pCollOfShapefiles, "Cover_All", pNewFeatShapefileWS, pCoverFClass, pNewCoverShapefile, _
       pNewShpCoverFCursor, pNewShpCoverFBuffer, strNewFClassName, varNewShpCoverFieldIndexes, strArrayOfShapefileNames, _
       strAbstract, strBaseString, strPurpose, pMxDoc
-  
+
   Do Until pCoverFeature Is Nothing
     UpdateCount lngCounter, pProg, lngCount
     booCheckIfShouldContinue = CheckGeometryAndSpecies(pCoverFeature, lngSpeciesIndex, strSpecies)
     If booCheckIfShouldContinue Then
-      
+
       strIDVal = pCoverFeature.Value(lngIDIndex) & "_Cover"
       FillVariousFClassObjects pCollOfFClasses, strIDVal, pNewFeatFGDBWS, pCoverFClass, pNewGeneralGDBFClass, _
           pNewGDBGeneralFCursor, pNewGDBGeneralFBuffer, strNewFClassName, varNewGDBGeneralFieldIndexes, strArrayOfGDBNames, _
@@ -153,43 +138,40 @@ Public Sub RecreateSubsetsOfConvertedDatasets()
       FillVariousFClassObjects pCollOfShapefiles, strIDVal, pNewFeatShapefileWS, pCoverFClass, pNewGeneralShpFClass, _
           pNewShpGeneralFCursor, pNewShpGeneralFBuffer, strNewFClassName, varNewShpGeneralFieldIndexes, strArrayOfShapefileNames, _
           strAbstract, strBaseString, strPurpose, pMxDoc
-      
-      ' WRITE VALUES
+
       WriteValues pCoverFeature, pNewGDBCoverFCursor, pNewGDBCoverFBuffer, varNewGDBCoverFieldIndexes, False
       WriteValues pCoverFeature, pNewShpCoverFCursor, pNewShpCoverFBuffer, varNewShpCoverFieldIndexes, True
-      
+
       WriteValues pCoverFeature, pNewGDBGeneralFCursor, pNewGDBGeneralFBuffer, varNewGDBGeneralFieldIndexes, False
       WriteValues pCoverFeature, pNewShpGeneralFCursor, pNewShpGeneralFBuffer, varNewShpGeneralFieldIndexes, True
-      
+
       If lngCounter Mod 2000 = 0 Then
         FlushAllDatasets pCollOfFClasses, pCollOfShapefiles, strArrayOfGDBNames, strArrayOfShapefileNames
       End If
-      
+
     End If
     Set pCoverFeature = pCoverFCursor.NextFeature
   Loop
   FlushAllDatasets pCollOfFClasses, pCollOfShapefiles, strArrayOfGDBNames, strArrayOfShapefileNames
-  
-'    Dim pCollOfFClasses As New Collection    ' FOR EACH ID VALUE, WILL CONTAIN VARIANT ARRAY OF [FClass Name, pFClass, pInsertCursor, pInsertBuffer]
 
   Set pDensityFCursor = pDensityFClass.Search(Nothing, False)
   Set pDensityFeature = pDensityFCursor.NextFeature
   lngIDIndex = pDensityFClass.FindField(strFieldToSplitBy)
   lngSpeciesIndex = pDensityFClass.FindField("Species")
-  
+
   FillVariousFClassObjects pCollOfFClasses, "Density_All", pNewFeatFGDBWS, pDensityFClass, pNewDensityGDBFClass, _
       pNewGDBDensityFCursor, pNewGDBDensityFBuffer, strNewFClassName, varNewGDBDensityFieldIndexes, strArrayOfGDBNames, _
       strAbstract, strBaseString, strPurpose, pMxDoc
-      
+
   FillVariousFClassObjects pCollOfShapefiles, "Density_All", pNewFeatShapefileWS, pDensityFClass, pNewDensityShapefile, _
       pNewShpDensityFCursor, pNewShpDensityFBuffer, strNewFClassName, varNewShpDensityFieldIndexes, strArrayOfShapefileNames, _
       strAbstract, strBaseString, strPurpose, pMxDoc
-      
+
   Do Until pDensityFeature Is Nothing
     UpdateCount lngCounter, pProg, lngCount
     booCheckIfShouldContinue = CheckGeometryAndSpecies(pDensityFeature, lngSpeciesIndex, strSpecies)
     If booCheckIfShouldContinue Then
-      
+
       strIDVal = pDensityFeature.Value(lngIDIndex) & "_Density"
       FillVariousFClassObjects pCollOfFClasses, strIDVal, pNewFeatFGDBWS, pDensityFClass, pNewGeneralGDBFClass, _
           pNewGDBGeneralFCursor, pNewGDBGeneralFBuffer, strNewFClassName, varNewGDBGeneralFieldIndexes, strArrayOfGDBNames, _
@@ -197,32 +179,31 @@ Public Sub RecreateSubsetsOfConvertedDatasets()
       FillVariousFClassObjects pCollOfShapefiles, strIDVal, pNewFeatShapefileWS, pDensityFClass, pNewGeneralShpFClass, _
           pNewShpGeneralFCursor, pNewShpGeneralFBuffer, strNewFClassName, varNewShpGeneralFieldIndexes, strArrayOfShapefileNames, _
           strAbstract, strBaseString, strPurpose, pMxDoc
-      
-      ' WRITE VALUES
+
       WriteValues pDensityFeature, pNewGDBDensityFCursor, pNewGDBDensityFBuffer, varNewGDBDensityFieldIndexes, False
       WriteValues pDensityFeature, pNewShpDensityFCursor, pNewShpDensityFBuffer, varNewShpDensityFieldIndexes, True
-      
+
       WriteValues pDensityFeature, pNewGDBGeneralFCursor, pNewGDBGeneralFBuffer, varNewGDBGeneralFieldIndexes, False
       WriteValues pDensityFeature, pNewShpGeneralFCursor, pNewShpGeneralFBuffer, varNewShpGeneralFieldIndexes, True
-      
+
       If lngCounter Mod 2000 = 0 Then
         FlushAllDatasets pCollOfFClasses, pCollOfShapefiles, strArrayOfGDBNames, strArrayOfShapefileNames
       End If
-      
+
     End If
-  
+
     Set pDensityFeature = pDensityFCursor.NextFeature
   Loop
   FlushAllDatasets pCollOfFClasses, pCollOfShapefiles, strArrayOfGDBNames, strArrayOfShapefileNames
   CreateAttributeFieldIndexes pCollOfFClasses, pCollOfShapefiles, strArrayOfGDBNames, strArrayOfShapefileNames
-  
+
   pProg.position = 0
   pSBar.HideProgressBar
-  
+
   Debug.Print "Done..."
   Debug.Print "Completed at " & Format(Now, "long time")
   Debug.Print MyGeneralOperations.ReturnTimeElapsedFromMilliseconds(GetTickCount - lngStart)
-  
+
 ClearMemory:
   Set pMxDoc = Nothing
   Set pApp = Nothing
@@ -272,20 +253,16 @@ ClearMemory:
   Set pNewShpGeneralFBuffer = Nothing
   varVal = Null
 
-
-
-
-  
 End Sub
 
 Public Sub CreateAttributeFieldIndexes(pCollOfGDBDatasets As Collection, pCollOfShapefiles As Collection, _
     strArrayOfGDBNames() As String, strArrayOfShapefileNames)
-    
+
   Dim lngIndex As Long
   Dim strName As String
   Dim varData() As Variant
   Dim pFClass As IFeatureClass
-  
+
   For lngIndex = 0 To UBound(strArrayOfGDBNames)
     strName = strArrayOfGDBNames(lngIndex)
     If MyGeneralOperations.CheckCollectionForKey(pCollOfGDBDatasets, strName) Then
@@ -304,7 +281,7 @@ Public Sub CreateAttributeFieldIndexes(pCollOfGDBDatasets As Collection, pCollOf
       DoEvents
     End If
   Next lngIndex
-  
+
 ClearMemory:
   Erase varData
   Set pFClass = Nothing
@@ -330,12 +307,12 @@ End Sub
 
 Public Sub FlushAllDatasets(pCollOfGDBDatasets As Collection, pCollOfShapefiles As Collection, _
     strArrayOfGDBNames() As String, strArrayOfShapefileNames)
-    
+
   Dim lngIndex As Long
   Dim strName As String
   Dim varData() As Variant
   Dim pFCursor As IFeatureCursor
-  
+
   For lngIndex = 0 To UBound(strArrayOfGDBNames)
     strName = strArrayOfGDBNames(lngIndex)
     If MyGeneralOperations.CheckCollectionForKey(pCollOfGDBDatasets, strName) Then
@@ -352,31 +329,23 @@ Public Sub FlushAllDatasets(pCollOfGDBDatasets As Collection, pCollOfShapefiles 
       pFCursor.Flush
     End If
   Next lngIndex
-  
+
 ClearMemory:
   Erase varData
   Set pFCursor = Nothing
-
-
 
 End Sub
 
 Public Sub WriteValues(pSrcFeature As IFeature, pDestFCursor As IFeatureCursor, pDestFBuffer As IFeatureBuffer, _
       varFieldIndexArray() As Variant, booIsShapefile As Boolean)
-      
-  ' varFieldIndexArray WILL HAVE 4 COLUMNS AND ANY NUMBER OR ROWS.
-  ' COLUMN 0 = SOURCE FIELD NAME
-  ' COLUMN 1 = SOURCE FIELD INDEX
-  ' COLUMN 2 = NEW FIELD NAME
-  ' COLUMN 3 = NEW FIELD INDEX
-  
+
   Dim lngIndex As Long
   Set pDestFBuffer.Shape = pSrcFeature.ShapeCopy
-  
+
   Dim varSrcVal As Variant
   Dim lngVarType As Long
   Dim lngDestIndex As Long
-  
+
   For lngIndex = 0 To UBound(varFieldIndexArray, 2)
     varSrcVal = pSrcFeature.Value(varFieldIndexArray(1, lngIndex))
     lngDestIndex = varFieldIndexArray(3, lngIndex)
@@ -394,7 +363,7 @@ Public Sub WriteValues(pSrcFeature As IFeature, pDestFCursor As IFeatureCursor, 
     pDestFBuffer.Value(lngDestIndex) = varSrcVal
   Next lngIndex
   pDestFCursor.InsertFeature pDestFBuffer
-  
+
 End Sub
 
 Public Sub FillVariousFClassObjects(pCollOfDatasets As Collection, strIDVal As String, pNewWS As IFeatureWorkspace, _
@@ -402,17 +371,17 @@ Public Sub FillVariousFClassObjects(pCollOfDatasets As Collection, strIDVal As S
       pNewFBuffer As IFeatureBuffer, strNewFClassName As String, varFieldIndexes() As Variant, _
       strArrayOfNames() As String, strAbstract As String, strBaseString As String, strPurpose As String, _
       pMxDoc As IMxDocument)
-  
+
   Dim varItems() As Variant
   Dim pDataset As IDataset
   Dim lngArrayCounter As Long
-  
+
   If IsDimmed(strArrayOfNames) Then
     lngArrayCounter = UBound(strArrayOfNames)
   Else
     lngArrayCounter = -1
   End If
-  
+
   If MyGeneralOperations.CheckCollectionForKey(pCollOfDatasets, strIDVal) Then
     varItems = pCollOfDatasets.Item(strIDVal)
     strNewFClassName = varItems(0)
@@ -425,20 +394,20 @@ Public Sub FillVariousFClassObjects(pCollOfDatasets As Collection, strIDVal As S
     Do Until InStr(1, strNewFClassName, "__", vbTextCompare) = 0
       strNewFClassName = Replace(strNewFClassName, "__", "_")
     Loop
-    
+
     lngArrayCounter = lngArrayCounter + 1
     ReDim Preserve strArrayOfNames(lngArrayCounter)
     strArrayOfNames(lngArrayCounter) = strIDVal
-    
+
     If MyGeneralOperations.CheckIfFeatureClassExists(pNewWS, strNewFClassName) Then
       Set pDataset = pNewWS.OpenFeatureClass(strNewFClassName)
       pDataset.DELETE
     End If
-    
+
     Set pNewFClass = MyGeneralOperations.ReturnEmptyFClassWithSameSchema(pSourceFClass, _
           pNewWS, varFieldIndexes, strNewFClassName, True)
     Call Margaret_Functions.Metadata_pNewFClass(pMxDoc, pNewFClass, strAbstract, strPurpose)
-    
+
     Set pNewFCursor = pNewFClass.Insert(True)
     Set pNewFBuffer = pNewFClass.CreateFeatureBuffer
     varItems(0) = strNewFClassName
@@ -447,7 +416,7 @@ Public Sub FillVariousFClassObjects(pCollOfDatasets As Collection, strIDVal As S
     varItems(3) = pNewFBuffer
     pCollOfDatasets.Add varItems, strIDVal
   End If
-  
+
 ClearMemory:
   Erase varItems
   Set pDataset = Nothing
@@ -455,10 +424,10 @@ ClearMemory:
 End Sub
 
 Public Function CheckGeometryAndSpecies(pFeature As IFeature, lngSpeciesIndex As Long, strSpecies As String) As Boolean
-  
+
   CheckGeometryAndSpecies = True
   strSpecies = ""
-    
+
   If pFeature.ShapeCopy.IsEmpty Then
     CheckGeometryAndSpecies = False
   ElseIf IsNull(pFeature.Value(lngSpeciesIndex)) Then
@@ -469,7 +438,7 @@ Public Function CheckGeometryAndSpecies(pFeature As IFeature, lngSpeciesIndex As
       CheckGeometryAndSpecies = False
     End If
   End If
-    
+
 End Function
 
 Public Sub UpdateCount(lngCounter As Long, pProg As IStepProgressor, lngCount As Long)
@@ -507,7 +476,7 @@ Public Sub FillMetadataItems(strAbstract As String, strBaseString As String, str
 
   strAbstract = "This dataset consists of 98 permanent 1-m2 quadrats located on ponderosa pine" & _
       "–bunchgrass ecosystems in or near Flagstaff, Arizona, USA.  Individual plants in " & _
-      "these quadrats were identified and mapped annually from 2002-2020.  The temporal and spatial data provide " & _
+      "these quadrats were identified and mapped annually from 2002-2024.  The temporal and spatial data provide " & _
       "unique opportunities to examine the effects of climate and " & _
       "land-use variables on plant demography, population and community processes.  The original chart quadrats were " & _
       "established between 1912 and 1927 to determine the effects of livestock grazing on herbaceous plants and pine " & _
@@ -524,42 +493,41 @@ Public Sub FillMetadataItems(strAbstract As String, strBaseString As String, str
       "(7) Counts of each species recorded at each site and quadrat" & _
       "(8) Tree density and basal area records for overstory plots that surround each quadrat" & vbNewLine & _
       "(9) Quadrat centerpoint coordinates in UTM Zone 12 and Latitude/Longitude coordinates, both in North American Datum of 1983" & vbNewLine & _
-      "(10) TIFF and PDF maps of all sites and years (n = 1,523 maps)"
+      "(10) TIFF and PDF maps of all sites and years (n = 1,877 maps)"
       strAbstract = strAbstract & vbCrLf & vbCrLf & strBaseString
 
   strPurpose = "An analysis of cover and density of southwestern ponderosa pine-bunchgrass plants mapped multiple times " & _
-      "between 2002 and 2020 in permanent quadrats."
- 
+      "between 2002 and 2024 in permanent quadrats."
+
 End Sub
 
 Public Sub RepairOverlappingPolygons()
-  
-  ' FIRST GET LISTS OF SPECIES AND PLOTS
+
   Dim lngStart As Long
   lngStart = GetTickCount
-  
+
   Dim pMxDoc As IMxDocument
   Dim pApp As IApplication
   Dim pSBar As IStatusBar
   Dim pProg As IStepProgressor
-  
+
   Set pMxDoc = ThisDocument
   Set pApp = Application
   Set pSBar = pApp.StatusBar
   Set pProg = pSBar.ProgressBar
-  
+
   Dim lngCount As Long
   Dim lngCounter As Long
-  
+
   Dim strCombinePath As String
   Dim strModifiedRoot As String
   Call DeclareWorkspaces(strCombinePath, strModifiedRoot)
-  
+
   Dim pWS As IFeatureWorkspace
   Dim pWSFact As IWorkspaceFactory
   Set pWSFact = New FileGDBWorkspaceFactory
   Set pWS = pWSFact.OpenFromFile(strModifiedRoot & "\Combined_by_Site.gdb", 0)
-  
+
   Dim pDensityFClass As IFeatureClass
   Dim pCoverFClass As IFeatureClass
   Dim pFCursor As IFeatureCursor
@@ -572,46 +540,46 @@ Public Sub RepairOverlappingPolygons()
   Dim lngCoverQuadratIndex As Long
   Dim lngCoverSiteIndex As Long
   Dim lngCoverPlotIndex As Long
-  
+
   Set pDensityFClass = pWS.OpenFeatureClass("Density_All")
   lngDensitySpeciesIndex = pDensityFClass.FindField("Species")
   lngDensityQuadratIndex = pDensityFClass.FindField("Quadrat")
   lngDensitySiteIndex = pDensityFClass.FindField("Site")
   lngDensityPlotIndex = pDensityFClass.FindField("Plot")
-  
+
   Set pCoverFClass = pWS.OpenFeatureClass("Cover_All")
   lngCoverSpeciesIndex = pCoverFClass.FindField("Species")
   lngCoverQuadratIndex = pCoverFClass.FindField("Quadrat")
   lngCoverSiteIndex = pCoverFClass.FindField("Site")
   lngCoverPlotIndex = pCoverFClass.FindField("Plot")
-  
+
   Dim pSiteLookup As New Collection
-  
+
   lngCount = pDensityFClass.FeatureCount(Nothing) + pCoverFClass.FeatureCount(Nothing)
-  
+
   Dim strSpecies As String
   Dim strSite As String
   Dim lngQuadrat As Long
   Dim lngIndex As Long
   Dim lngIndex2 As Long
-  
+
   Dim strAllSpecies() As String
   Dim strAllSites() As String
   Dim lngAllQuadrats() As Long
   Dim lngAllSpeciesIndex As Long
   Dim lngAllPlotsIndex As Long
-  
+
   Dim pDonePlots As New Collection
   Dim pDoneSpecies As New Collection
-  
+
   lngAllSpeciesIndex = -1
   lngAllPlotsIndex = -1
-  
+
   pSBar.ShowProgressBar "Initial Pass...", 0, lngCount, 1, True
   pProg.position = 0
-  
+
   lngCounter = 0
-    
+
   Set pFCursor = pDensityFClass.Search(Nothing, False)
   Set pFeature = pFCursor.NextFeature
   Do Until pFeature Is Nothing
@@ -620,21 +588,21 @@ Public Sub RepairOverlappingPolygons()
     If lngCounter Mod 100 = 0 Then
       DoEvents
     End If
-    
+
     strSite = pFeature.Value(lngDensityQuadratIndex)
     If Not MyGeneralOperations.CheckCollectionForKey(pDonePlots, strSite) Then
       pDonePlots.Add True, strSite
       lngAllPlotsIndex = lngAllPlotsIndex + 1
       ReDim Preserve strAllSites(lngAllPlotsIndex)
       strAllSites(lngAllPlotsIndex) = strSite
-      
+
       pSiteLookup.Add pFeature.Value(lngDensitySiteIndex) & ", " & pFeature.Value(lngDensityPlotIndex), strSite
-      
+
     End If
-    
+
     Set pFeature = pFCursor.NextFeature
   Loop
-    
+
   Set pFCursor = pCoverFClass.Search(Nothing, False)
   Set pFeature = pFCursor.NextFeature
   Do Until pFeature Is Nothing
@@ -643,26 +611,23 @@ Public Sub RepairOverlappingPolygons()
     If lngCounter Mod 100 = 0 Then
       DoEvents
     End If
-    
+
     strSite = pFeature.Value(lngCoverQuadratIndex)
     If Not MyGeneralOperations.CheckCollectionForKey(pDonePlots, strSite) Then
       pDonePlots.Add True, strSite
       lngAllPlotsIndex = lngAllPlotsIndex + 1
       ReDim Preserve strAllSites(lngAllPlotsIndex)
       strAllSites(lngAllPlotsIndex) = strSite
-      
+
       pSiteLookup.Add pFeature.Value(lngCoverSiteIndex) & ", " & pFeature.Value(lngCoverPlotIndex), strSite
-      
+
     End If
-    
+
     Set pFeature = pFCursor.NextFeature
   Loop
-  
+
   QuickSort.StringsAscending strAllSites, 0, UBound(strAllSites)
-'  QuickSort.StringsAscending strAllSpecies, 0, UBound(strAllSpecies)
-  
-  ' NOW GO THROUGH EACH UNIQUE COMBINATION OF PLOT, YEAR AND SPECIES.
-  ' SELECT ALL CASES WHERE THAT SPECIES EXISTS IN THAT PLOT AND YEAR. BY GOING THROUGH
+
   Dim pQueryFilt As IQueryFilter
   Set pQueryFilt = New QueryFilter
   Dim lngYear As Long
@@ -675,12 +640,12 @@ Public Sub RepairOverlappingPolygons()
   Call MyGeneralOperations.ReturnQuerySpecialCharacters(pCoverFClass, strPrefix, strSuffix)
   Dim lngTotalCount As Long
   Dim strSitePlot As String
-  
+
   Dim strCheckReport As String
-      
+
   pSBar.ShowProgressBar "Pass 2:  Working through sites and years...", 0, 18 * (UBound(strAllSites) + 1), 1, True
   pProg.position = 0
-  
+
   lngCounter = 0
   Dim pFCursor2 As IFeatureCursor
   Dim pFeature2 As IFeature
@@ -695,13 +660,13 @@ Public Sub RepairOverlappingPolygons()
   Dim dblDist As Double
   Dim booFoundIntersect As Boolean
   Dim lngIntersectCounter As Long
-  
+
   Dim lngCoverOIDArray() As Long
   Dim lngDensityOIDArray() As Long
   Dim lngCoverArrayIndex As Long
   Dim lngDensityArrayIndex As Long
   Dim pBufferPoly As IPolygon
-  
+
   For lngYear = 2002 To 2020
     DoEvents
     For lngIndex = 0 To UBound(strAllSites)
@@ -709,21 +674,15 @@ Public Sub RepairOverlappingPolygons()
         DoEvents
       End If
       pProg.Step
-      
+
       strQuadrat = strAllSites(lngIndex)
       pQueryFilt.WhereClause = strPrefix & "Quadrat" & strSuffix & " = '" & strQuadrat & "' AND " & _
           strPrefix & "Year" & strSuffix & " = '" & Format(lngYear, "0") & "'"
-      
-      ' MAKE LIST OF SPECIES OBSERVED ON THIS QUADRAT THIS YEAR
-      
-'      Debug.Print "Quadrat = " & strQuadrat & "; Year = " & Format(lngYear, "0") & vbCrLf & _
-'          "  --> Cover Count = " & Format(pCoverFClass.FeatureCount(pQueryFilt), "#,##0") & vbCrLf & _
-'          "  --> Density Count = " & Format(pDensityFClass.FeatureCount(pQueryFilt), "#,##0")
-                  
+
       lngAllSpeciesIndex = -1
       Erase strAllSpecies
       Set pDoneSpecies = New Collection
-        
+
       Set pFCursor = pDensityFClass.Search(pQueryFilt, False)
       Set pFeature = pFCursor.NextFeature
       Do Until pFeature Is Nothing
@@ -735,10 +694,10 @@ Public Sub RepairOverlappingPolygons()
           ReDim Preserve strAllSpecies(lngAllSpeciesIndex)
           strAllSpecies(lngAllSpeciesIndex) = strSpecies
         End If
-        
+
         Set pFeature = pFCursor.NextFeature
       Loop
-        
+
       Set pFCursor = pCoverFClass.Search(pQueryFilt, False)
       Set pFeature = pFCursor.NextFeature
       Do Until pFeature Is Nothing
@@ -750,21 +709,14 @@ Public Sub RepairOverlappingPolygons()
           ReDim Preserve strAllSpecies(lngAllSpeciesIndex)
           strAllSpecies(lngAllSpeciesIndex) = strSpecies
         End If
-        
+
         Set pFeature = pFCursor.NextFeature
       Loop
-      
+
       If lngAllSpeciesIndex > -1 Then
         DoEvents
       End If
-      
-'      Debug.Print "Quadrat = " & strQuadrat & "; Year = " & Format(lngYear, "0") & vbCrLf & _
-'          "  --> Cover Count = " & Format(pCoverFClass.FeatureCount(pQueryFilt), "#,##0") & vbCrLf & _
-'          "  --> Density Count = " & Format(pDensityFClass.FeatureCount(pQueryFilt), "#,##0") & vbCrLf & _
-'          "  --> Found " & Format(lngAllSpeciesIndex + 1, "0") & " unique species"
-      
-      ' NOW HAVE LIST OF ALL SPECIES OBSERVED ON THIS QUADRAT THIS YEAR.
-      
+
       If lngAllSpeciesIndex > -1 Then
         For lngIndex2 = 0 To lngAllSpeciesIndex
           strSpecies = strAllSpecies(lngIndex2)
@@ -773,48 +725,44 @@ Public Sub RepairOverlappingPolygons()
                 strPrefix & "Year" & strSuffix & " = '" & Format(lngYear, "0") & "' AND " & _
                 strPrefix & "Species" & strSuffix & " = '" & strSpecies & "'"
             pSpFilt.WhereClause = pQueryFilt.WhereClause
-            
-            ' WORK THOUGH EACH INSTANCE OF A PARTICULAR SPECIES IN THIS QUADRAT IN THIS YEAR.
-            ' CHECK TO SEE HOW MANY COVER AND DENSITY FEATURES WITH THIS SPECIES INTERSECT THIS INSTANCE.  SHOULD BE EXACTLY ONE (ITSELF).
-            ' FIRST COVER
+
             lngCoverArrayIndex = -1
             lngDensityArrayIndex = -1
             Erase lngCoverOIDArray
             Erase lngDensityOIDArray
-            
+
             Set pFCursor = pCoverFClass.Search(pQueryFilt, False)
             Set pFeature = pFCursor.NextFeature
             Do Until pFeature Is Nothing
-              
+
               If pFeature.OID = 27974 Then
                 DoEvents
               End If
-              
+
               Set pPoly1 = pFeature.ShapeCopy
               If Not pPoly1.IsEmpty Then
                 Set pBufferPoly = ExpandSmallPolygonByBufferDist(pPoly1)
               Else
                 Set pBufferPoly = pPoly1
               End If
-              
-'              Set pSpFilt.Geometry = pFeature.ShapeCopy
+
               Set pSpFilt.Geometry = pBufferPoly
               lngCoverCount = pCoverFClass.FeatureCount(pSpFilt)
               lngDensityCount = pDensityFClass.FeatureCount(pSpFilt)
               lngTotalCount = lngCoverCount + lngDensityCount
-              
+
               If lngTotalCount <> 1 Then
                 strCoverQueryString = ""
                 strDensityQueryString = ""
                 strQueryLine = ""
                 booFoundIntersect = False
                 lngIntersectCounter = 0
-                
+
                 strSitePlot = pSiteLookup.Item(strQuadrat)
                 strQueryLine = strQuadrat & " (" & strSitePlot & "), " & Format(lngYear, "0") & vbCrLf & _
                     "  --> Species = " & strSpecies & vbCrLf & _
                     "  --> Found " & Format(lngTotalCount, "#,##0") & " overlapping features" & vbCrLf
-                
+
                 If lngCoverCount = 0 And lngDensityCount = 0 Then
                   If lngCoverCount = 0 Then
                     strCoverQueryString = strPrefix & pCoverFClass.OIDFieldName & strSuffix & _
@@ -824,7 +772,7 @@ Public Sub RepairOverlappingPolygons()
                     lngIntersectCounter = 2 ' JUST TO FORCE EVENT TO BE WRITTEN TO REPORT
                   End If
                 End If
-                
+
                 If lngCoverCount > 0 Then
                   strQueryLine = strQueryLine & "  --> Cover Polygon OID values = "
                   Set pFCursor2 = pCoverFClass.Search(pSpFilt, True)
@@ -836,96 +784,93 @@ Public Sub RepairOverlappingPolygons()
                       lngCoverArrayIndex = lngCoverArrayIndex + 1
                       ReDim Preserve lngCoverOIDArray(lngCoverArrayIndex)
                       lngCoverOIDArray(lngCoverArrayIndex) = pFeature2.OID
-                    
+
                       lngIntersectCounter = lngIntersectCounter + 1
                       strQueryLine = strQueryLine & Format(pFeature2.OID, "0") & ", "
                       strCoverQueryString = strCoverQueryString & _
                           strPrefix & pCoverFClass.OIDFieldName & strSuffix & " = " & Format(pFeature2.OID, "0") & " OR "
-                      
+
                       booFoundIntersect = True
-                    
+
                     End If
                     Set pFeature2 = pFCursor2.NextFeature
                   Loop
-                  
+
                   If lngCoverArrayIndex > -1 Then
                     strCoverQueryString = Left(strCoverQueryString, Len(strCoverQueryString) - 4)
                     strQueryLine = Left(strQueryLine, Len(strQueryLine) - 2) & vbCrLf & _
                         "  --> Cover Query String: " & strCoverQueryString & vbCrLf
                   End If
                 End If
-                
+
                 If lngDensityCount > 0 Then
                   strQueryLine = strQueryLine & "  --> Density Polygon OID values = "
                   Set pFCursor2 = pDensityFClass.Search(pSpFilt, True)
                   Set pFeature2 = pFCursor2.NextFeature
                   Do Until pFeature2 Is Nothing
                     Set pPoly2 = pFeature2.ShapeCopy
-                    
+
                     dblDist = MyGeometricOperations.DistanceBetweenPolygons(True, Array(pPoly1, pPoly2))
                     If dblDist = 0 Then
-                    
+
                       lngDensityArrayIndex = lngDensityArrayIndex + 1
                       ReDim Preserve lngDensityOIDArray(lngDensityArrayIndex)
                       lngDensityOIDArray(lngDensityArrayIndex) = pFeature2.OID
-                      
+
                       lngIntersectCounter = lngIntersectCounter + 1
-                    
+
                       strQueryLine = strQueryLine & Format(pFeature2.OID, "0") & ", "
                       strDensityQueryString = strDensityQueryString & _
                           strPrefix & pDensityFClass.OIDFieldName & strSuffix & " = " & Format(pFeature2.OID, "0") & " OR "
-                      
+
                       booFoundIntersect = True
-                    
+
                     End If
-                  
+
                     Set pFeature2 = pFCursor2.NextFeature
                   Loop
-                  
+
                   If lngDensityArrayIndex > -1 Then
                     strDensityQueryString = Left(strDensityQueryString, Len(strDensityQueryString) - 4)
                     strQueryLine = Left(strQueryLine, Len(strQueryLine) - 2) & vbCrLf & _
                         "  --> Density Query String: " & strDensityQueryString & vbCrLf
                   End If
                 End If
-                
+
                 If booFoundIntersect And lngIntersectCounter > 1 And _
                         Not MyGeneralOperations.CheckCollectionForKey(pDoneQueryStrings, strQueryLine) Then
                   Debug.Print "  ***** Count = " & Format(lngTotalCount) & "..." & pQueryFilt.WhereClause
                   pDoneQueryStrings.Add True, strQueryLine
                   lngCounter = lngCounter + 1
                   strCheckReport = strCheckReport & Format(lngCounter, "#,##0") & "] " & strQueryLine & vbCrLf
-                  
-                  ' RUN CLIP OPERATION
+
                   If IsDimmed(lngDensityOIDArray) Or IsDimmed(lngCoverOIDArray) Then
                     TestFunctions.ClipSetOfPolygons pDensityFClass, lngDensityOIDArray, pCoverFClass, lngCoverOIDArray  ', pMxDoc
                   End If
-  
+
                 End If
               End If
               Set pFeature = pFCursor.NextFeature
             Loop
-            
-            ' NEXT DENSITY
+
             lngCoverArrayIndex = -1
             lngDensityArrayIndex = -1
             Erase lngCoverOIDArray
             Erase lngDensityOIDArray
             Set pFCursor = pDensityFClass.Search(pQueryFilt, False)
             Set pFeature = pFCursor.NextFeature
-            
+
             Do Until pFeature Is Nothing
-            
+
               Set pPoly1 = pFeature.ShapeCopy
               If Not pPoly1.IsEmpty Then
                 Set pBufferPoly = ExpandSmallPolygonByBufferDist(pPoly1)
               Else
                 Set pBufferPoly = pPoly1
               End If
-              
-'              Set pSpFilt.Geometry = pFeature.ShapeCopy
+
               Set pSpFilt.Geometry = pBufferPoly
-              
+
               lngCoverCount = pCoverFClass.FeatureCount(pSpFilt)
               lngDensityCount = pDensityFClass.FeatureCount(pSpFilt)
               lngTotalCount = lngCoverCount + lngDensityCount
@@ -935,12 +880,12 @@ Public Sub RepairOverlappingPolygons()
                 strQueryLine = ""
                 booFoundIntersect = False
                 lngIntersectCounter = 0
-                
+
                 strSitePlot = pSiteLookup.Item(strQuadrat)
                 strQueryLine = strQuadrat & " (" & strSitePlot & "), " & Format(lngYear, "0") & vbCrLf & _
                     "  --> Species = " & strSpecies & vbCrLf & _
                     "  --> Found " & Format(lngTotalCount, "#,##0") & " overlapping features" & vbCrLf
-                    
+
                 If lngCoverCount = 0 And lngDensityCount = 0 Then
                   If lngDensityCount = 0 Then
                     strDensityQueryString = strPrefix & pCoverFClass.OIDFieldName & strSuffix & _
@@ -949,7 +894,7 @@ Public Sub RepairOverlappingPolygons()
                     booFoundIntersect = True
                   End If
                 End If
-                
+
                 If lngCoverCount > 0 Then
                   strQueryLine = strQueryLine & "  --> Cover Polygon OID values = "
                   Set pFCursor2 = pCoverFClass.Search(pSpFilt, True)
@@ -961,9 +906,9 @@ Public Sub RepairOverlappingPolygons()
                       lngCoverArrayIndex = lngCoverArrayIndex + 1
                       ReDim Preserve lngCoverOIDArray(lngCoverArrayIndex)
                       lngCoverOIDArray(lngCoverArrayIndex) = pFeature2.OID
-                      
+
                       lngIntersectCounter = lngIntersectCounter + 1
-                    
+
                       strQueryLine = strQueryLine & Format(pFeature2.OID, "0") & ", "
                       strCoverQueryString = strCoverQueryString & _
                           strPrefix & pCoverFClass.OIDFieldName & strSuffix & " = " & Format(pFeature2.OID, "0") & " OR "
@@ -985,19 +930,19 @@ Public Sub RepairOverlappingPolygons()
                     Set pPoly2 = pFeature2.ShapeCopy
                     dblDist = MyGeometricOperations.DistanceBetweenPolygons(True, Array(pPoly1, pPoly2))
                     If dblDist = 0 Then
-                    
+
                       lngDensityArrayIndex = lngDensityArrayIndex + 1
                       ReDim Preserve lngDensityOIDArray(lngDensityArrayIndex)
                       lngDensityOIDArray(lngDensityArrayIndex) = pFeature2.OID
-                      
+
                       lngIntersectCounter = lngIntersectCounter + 1
-                    
+
                       strQueryLine = strQueryLine & Format(pFeature2.OID, "0") & ", "
                       strDensityQueryString = strDensityQueryString & _
                           strPrefix & pDensityFClass.OIDFieldName & strSuffix & " = " & Format(pFeature2.OID, "0") & " OR "
                       booFoundIntersect = True
                     End If
-                  
+
                     Set pFeature2 = pFCursor2.NextFeature
                   Loop
                   If lngDensityArrayIndex > 0 Then
@@ -1006,19 +951,18 @@ Public Sub RepairOverlappingPolygons()
                         "  --> Density Query String: " & strDensityQueryString & vbCrLf
                   End If
                 End If
-                
+
                 If booFoundIntersect And lngIntersectCounter > 1 And _
                       Not MyGeneralOperations.CheckCollectionForKey(pDoneQueryStrings, strQueryLine) Then
                   Debug.Print "  ***** Count = " & Format(lngTotalCount) & "..." & pQueryFilt.WhereClause
                   pDoneQueryStrings.Add True, strQueryLine
                   lngCounter = lngCounter + 1
                   strCheckReport = strCheckReport & Format(lngCounter, "#,##0") & "] " & strQueryLine & vbCrLf
-                  
-                  ' RUN CLIP OPERATION IF ACTUAL POLYGONS
+
                   If IsDimmed(lngDensityOIDArray) Or IsDimmed(lngCoverOIDArray) Then
                     TestFunctions.ClipSetOfPolygons pDensityFClass, lngDensityOIDArray, pCoverFClass, lngCoverOIDArray ', pMxDoc
                   End If
-  
+
                 End If
               End If
               Set pFeature = pFCursor.NextFeature
@@ -1026,16 +970,15 @@ Public Sub RepairOverlappingPolygons()
           End If
         Next lngIndex2
       End If
-      
+
     Next lngIndex
   Next lngYear
-  
-  ' ERASE ALL EMPTY GEOMETRIES
+
   pSBar.ShowProgressBar "Pass :  Deleting Empty Geometries...", 0, pCoverFClass.FeatureCount(Nothing) + _
       pDensityFClass.FeatureCount(Nothing), 1, True
   pProg.position = 0
   lngCounter = 0
-  
+
   Set pFCursor = pCoverFClass.Search(Nothing, False)
   Set pFeature = pFCursor.NextFeature
   Do Until pFeature Is Nothing
@@ -1048,7 +991,7 @@ Public Sub RepairOverlappingPolygons()
     If lngCounter Mod 1000 = 0 Then DoEvents
     Set pFeature = pFCursor.NextFeature
   Loop
-  
+
   Set pFCursor = pDensityFClass.Search(Nothing, False)
   Set pFeature = pFCursor.NextFeature
   Do Until pFeature Is Nothing
@@ -1061,11 +1004,10 @@ Public Sub RepairOverlappingPolygons()
     If lngCounter Mod 1000 = 0 Then DoEvents
     Set pFeature = pFCursor.NextFeature
   Loop
-  
+
   Dim pDataObj As New MSForms.DataObject
   pDataObj.SetText strCheckReport
-'  pDataObj.PutInClipboard
-  
+
   Dim strPath As String
   strPath = MyGeneralOperations.MakeUniquedBASEName( _
       "D:\arcGIS_stuff\consultation\Margaret_Moore\Intermediate_Analyses\Overlapping_Features.txt")
@@ -1074,8 +1016,7 @@ Public Sub RepairOverlappingPolygons()
   pProg.position = 0
   Debug.Print "Done..."
   Debug.Print MyGeneralOperations.ReturnTimeElapsedFromMilliseconds(GetTickCount - lngStart)
-  
-  
+
 ClearMemory:
   Set pMxDoc = Nothing
   Set pApp = Nothing
@@ -1098,8 +1039,6 @@ ClearMemory:
   Set pFCursor2 = Nothing
   Set pFeature2 = Nothing
   Set pDataObj = Nothing
-
-
 
 End Sub
 
@@ -1110,32 +1049,29 @@ Public Function ExpandSmallPolygonByBufferDist(ByVal pPolygon As IPolygon) As IP
   Dim pBuffer As IPolygon
   Dim pClone As IClone
   Dim pModPoly As IPolygon
-  
+
   Set pClone = pPolygon
   Set pModPoly = pClone.Clone
-  
+
   Set pCentroid = MyGeneralOperations.Get_Element_Or_Envelope_Point(pModPoly.Envelope, ENUM_Center_Center)
-  
+
   Dim pBuffCon As IBufferConstruction
   Set pBuffCon = New BufferConstruction
-  
-  ' SCALE UP
+
   Set pTransform2D = pModPoly
   With pTransform2D
     .Scale pCentroid, 1000, 1000
   End With
-  
-  ' BUFFER
+
   Set pModPoly = pBuffCon.Buffer(pModPoly, 0.75)
-  
-  ' SCALE BACK DOWN
+
   Set pTransform2D = pModPoly
   With pTransform2D
     .Scale pCentroid, 0.001, 0.001
   End With
-  
+
   Set ExpandSmallPolygonByBufferDist = pModPoly
-  
+
 ClearMemory:
   Set pTransform2D = Nothing
   Set pCentroid = Nothing
@@ -1143,501 +1079,39 @@ ClearMemory:
   Set pClone = Nothing
   Set pModPoly = Nothing
   Set pBuffCon = Nothing
-    
+
 End Function
 
-Public Sub CheckForOverlappingPolygons()
-  
-  ' FIRST GET LISTS OF SPECIES AND PLOTS
-  Dim lngStart As Long
-  lngStart = GetTickCount
-  
-  Dim pMxDoc As IMxDocument
-  Dim pApp As IApplication
-  Dim pSBar As IStatusBar
-  Dim pProg As IStepProgressor
-  
-  Set pMxDoc = ThisDocument
-  Set pApp = Application
-  Set pSBar = pApp.StatusBar
-  Set pProg = pSBar.ProgressBar
-  
-  Dim lngCount As Long
-  Dim lngCounter As Long
-  
-  Dim strCombinePath As String
-  Dim strModifiedRoot As String
-  Call DeclareWorkspaces(strCombinePath, strModifiedRoot)
-  
-  Dim pWS As IFeatureWorkspace
-  Dim pWSFact As IWorkspaceFactory
-  Set pWSFact = New FileGDBWorkspaceFactory
-  Set pWS = pWSFact.OpenFromFile(strModifiedRoot & "\Combined_by_Site.gdb", 0)
-  
-  Dim pDensityFClass As IFeatureClass
-  Dim pCoverFClass As IFeatureClass
-  Dim pFCursor As IFeatureCursor
-  Dim pFeature As IFeature
-  Dim lngDensitySpeciesIndex As Long
-  Dim lngDensityQuadratIndex As Long
-  Dim lngDensitySiteIndex As Long
-  Dim lngDensityPlotIndex As Long
-  Dim lngCoverSpeciesIndex As Long
-  Dim lngCoverQuadratIndex As Long
-  Dim lngCoverSiteIndex As Long
-  Dim lngCoverPlotIndex As Long
-  
-  Set pDensityFClass = pWS.OpenFeatureClass("Density_All")
-  lngDensitySpeciesIndex = pDensityFClass.FindField("Species")
-  lngDensityQuadratIndex = pDensityFClass.FindField("Quadrat")
-  lngDensitySiteIndex = pDensityFClass.FindField("Site")
-  lngDensityPlotIndex = pDensityFClass.FindField("Plot")
-  
-  Set pCoverFClass = pWS.OpenFeatureClass("Cover_All")
-  lngCoverSpeciesIndex = pCoverFClass.FindField("Species")
-  lngCoverQuadratIndex = pCoverFClass.FindField("Quadrat")
-  lngCoverSiteIndex = pCoverFClass.FindField("Site")
-  lngCoverPlotIndex = pCoverFClass.FindField("Plot")
-  
-  Dim pSiteLookup As New Collection
-  
-  lngCount = pDensityFClass.FeatureCount(Nothing) + pCoverFClass.FeatureCount(Nothing)
-  
-  Dim strSpecies As String
-  Dim strSite As String
-  Dim lngQuadrat As Long
-  Dim lngIndex As Long
-  Dim lngIndex2 As Long
-  
-  Dim strAllSpecies() As String
-  Dim strAllSites() As String
-  Dim lngAllQuadrats() As Long
-  Dim lngAllSpeciesIndex As Long
-  Dim lngAllPlotsIndex As Long
-  
-  Dim pDonePlots As New Collection
-  Dim pDoneSpecies As New Collection
-  
-  lngAllSpeciesIndex = -1
-  lngAllPlotsIndex = -1
-  
-  pSBar.ShowProgressBar "Initial Pass...", 0, lngCount, 1, True
-  pProg.position = 0
-  
-  lngCounter = 0
-    
-  Set pFCursor = pDensityFClass.Search(Nothing, False)
-  Set pFeature = pFCursor.NextFeature
-  Do Until pFeature Is Nothing
-    pProg.Step
-    lngCounter = lngCounter + 1
-    If lngCounter Mod 100 = 0 Then
-      DoEvents
-    End If
-    
-    strSite = pFeature.Value(lngDensityQuadratIndex)
-    If Not MyGeneralOperations.CheckCollectionForKey(pDonePlots, strSite) Then
-      pDonePlots.Add True, strSite
-      lngAllPlotsIndex = lngAllPlotsIndex + 1
-      ReDim Preserve strAllSites(lngAllPlotsIndex)
-      strAllSites(lngAllPlotsIndex) = strSite
-      
-      pSiteLookup.Add pFeature.Value(lngDensitySiteIndex) & ", " & pFeature.Value(lngDensityPlotIndex), strSite
-      
-    End If
-    
-    Set pFeature = pFCursor.NextFeature
-  Loop
-    
-  Set pFCursor = pCoverFClass.Search(Nothing, False)
-  Set pFeature = pFCursor.NextFeature
-  Do Until pFeature Is Nothing
-    pProg.Step
-    lngCounter = lngCounter + 1
-    If lngCounter Mod 100 = 0 Then
-      DoEvents
-    End If
-    
-    strSite = pFeature.Value(lngCoverQuadratIndex)
-    If Not MyGeneralOperations.CheckCollectionForKey(pDonePlots, strSite) Then
-      pDonePlots.Add True, strSite
-      lngAllPlotsIndex = lngAllPlotsIndex + 1
-      ReDim Preserve strAllSites(lngAllPlotsIndex)
-      strAllSites(lngAllPlotsIndex) = strSite
-      
-      pSiteLookup.Add pFeature.Value(lngCoverSiteIndex) & ", " & pFeature.Value(lngCoverPlotIndex), strSite
-      
-    End If
-    
-    Set pFeature = pFCursor.NextFeature
-  Loop
-  
-  QuickSort.StringsAscending strAllSites, 0, UBound(strAllSites)
-'  QuickSort.StringsAscending strAllSpecies, 0, UBound(strAllSpecies)
-  
-  ' NOW GO THROUGH EACH UNIQUE COMBINATION OF PLOT, YEAR AND SPECIES.
-  ' SELECT ALL CASES WHERE THAT SPECIES EXISTS IN THAT PLOT AND YEAR. BY GOING THROUGH
-  Dim pQueryFilt As IQueryFilter
-  Set pQueryFilt = New QueryFilter
-  Dim lngYear As Long
-  Dim strPrefix As String
-  Dim strSuffix As String
-  Dim strQuadrat As String
-  Dim pSpFilt As ISpatialFilter
-  Set pSpFilt = New SpatialFilter
-  pSpFilt.SpatialRel = esriSpatialRelIntersects
-  Call MyGeneralOperations.ReturnQuerySpecialCharacters(pCoverFClass, strPrefix, strSuffix)
-  Dim lngTotalCount As Long
-  Dim strSitePlot As String
-  
-  Dim strCheckReport As String
-      
-  pSBar.ShowProgressBar "Working through sites and years...", 0, 18 * (UBound(strAllSites) + 1), 1, True
-  pProg.position = 0
-  
-  lngCounter = 0
-  Dim pFCursor2 As IFeatureCursor
-  Dim pFeature2 As IFeature
-  Dim lngCoverCount As Long
-  Dim lngDensityCount As Long
-  Dim strCoverQueryString As String
-  Dim strDensityQueryString As String
-  Dim pDoneQueryStrings As New Collection
-  Dim strQueryLine As String
-  Dim pPoly1 As IPolygon
-  Dim pPoly2 As IPolygon
-  Dim dblDist As Double
-  Dim booFoundIntersect As Boolean
-  Dim lngIntersectCounter As Long
-  
-  For lngYear = 2002 To 2020
-    DoEvents
-    For lngIndex = 0 To UBound(strAllSites)
-      If lngIndex Mod 10 = 0 Then
-        DoEvents
-      End If
-      pProg.Step
-      
-      strQuadrat = strAllSites(lngIndex)
-      pQueryFilt.WhereClause = strPrefix & "Quadrat" & strSuffix & " = '" & strQuadrat & "' AND " & _
-          strPrefix & "Year" & strSuffix & " = '" & Format(lngYear, "0") & "'"
-      
-      ' MAKE LIST OF SPECIES OBSERVED ON THIS QUADRAT THIS YEAR
-      
-'      Debug.Print "Quadrat = " & strQuadrat & "; Year = " & Format(lngYear, "0") & vbCrLf & _
-'          "  --> Cover Count = " & Format(pCoverFClass.FeatureCount(pQueryFilt), "#,##0") & vbCrLf & _
-'          "  --> Density Count = " & Format(pDensityFClass.FeatureCount(pQueryFilt), "#,##0")
-                  
-      lngAllSpeciesIndex = -1
-      Erase strAllSpecies
-      Set pDoneSpecies = New Collection
-        
-      Set pFCursor = pDensityFClass.Search(pQueryFilt, False)
-      Set pFeature = pFCursor.NextFeature
-      Do Until pFeature Is Nothing
-        strSpecies = Trim(pFeature.Value(lngDensitySpeciesIndex))
-        If strSpecies = "" Then strSpecies = "<-- Species Name Missing -->"
-        If Not MyGeneralOperations.CheckCollectionForKey(pDoneSpecies, strSpecies) Then
-          pDoneSpecies.Add True, strSpecies
-          lngAllSpeciesIndex = lngAllSpeciesIndex + 1
-          ReDim Preserve strAllSpecies(lngAllSpeciesIndex)
-          strAllSpecies(lngAllSpeciesIndex) = strSpecies
-        End If
-        
-        Set pFeature = pFCursor.NextFeature
-      Loop
-        
-      Set pFCursor = pCoverFClass.Search(pQueryFilt, False)
-      Set pFeature = pFCursor.NextFeature
-      Do Until pFeature Is Nothing
-        strSpecies = Trim(pFeature.Value(lngCoverSpeciesIndex))
-        If strSpecies = "" Then strSpecies = "<-- Species Name Missing -->"
-        If Not MyGeneralOperations.CheckCollectionForKey(pDoneSpecies, strSpecies) Then
-          pDoneSpecies.Add True, strSpecies
-          lngAllSpeciesIndex = lngAllSpeciesIndex + 1
-          ReDim Preserve strAllSpecies(lngAllSpeciesIndex)
-          strAllSpecies(lngAllSpeciesIndex) = strSpecies
-        End If
-        
-        Set pFeature = pFCursor.NextFeature
-      Loop
-      
-      If lngAllSpeciesIndex > -1 Then
-        DoEvents
-      End If
-      
-'      Debug.Print "Quadrat = " & strQuadrat & "; Year = " & Format(lngYear, "0") & vbCrLf & _
-'          "  --> Cover Count = " & Format(pCoverFClass.FeatureCount(pQueryFilt), "#,##0") & vbCrLf & _
-'          "  --> Density Count = " & Format(pDensityFClass.FeatureCount(pQueryFilt), "#,##0") & vbCrLf & _
-'          "  --> Found " & Format(lngAllSpeciesIndex + 1, "0") & " unique species"
-      
-      If lngAllSpeciesIndex > -1 Then
-        For lngIndex2 = 0 To lngAllSpeciesIndex
-          strSpecies = strAllSpecies(lngIndex2)
-          If strSpecies <> "No Polygon Species" Then
-            pQueryFilt.WhereClause = strPrefix & "Quadrat" & strSuffix & " = '" & strQuadrat & "' AND " & _
-                strPrefix & "Year" & strSuffix & " = '" & Format(lngYear, "0") & "' AND " & _
-                strPrefix & "Species" & strSuffix & " = '" & strSpecies & "'"
-            pSpFilt.WhereClause = pQueryFilt.WhereClause
-            
-            ' WORK THOUGH EACH INSTANCE OF A PARTICULAR SPECIES IN THIS QUADRAT IN THIS YEAR.
-            ' CHECK TO SEE HOW MANY COVER AND DENSITY FEATURES WITH THIS SPECIES INTERSECT THIS INSTANCE.  SHOULD BE EXACTLY ONE (ITSELF).
-            ' FIRST COVER
-            Set pFCursor = pCoverFClass.Search(pQueryFilt, False)
-            Set pFeature = pFCursor.NextFeature
-            Do Until pFeature Is Nothing
-            
-              Set pPoly1 = pFeature.ShapeCopy
-            
-              Set pSpFilt.Geometry = pFeature.ShapeCopy
-              lngCoverCount = pCoverFClass.FeatureCount(pSpFilt)
-              lngDensityCount = pDensityFClass.FeatureCount(pSpFilt)
-              lngTotalCount = lngCoverCount + lngDensityCount
-              
-              If lngTotalCount <> 1 Then
-                strCoverQueryString = ""
-                strDensityQueryString = ""
-                strQueryLine = ""
-                booFoundIntersect = False
-                lngIntersectCounter = 0
-                
-                strSitePlot = pSiteLookup.Item(strQuadrat)
-                strQueryLine = strQuadrat & " (" & strSitePlot & "), " & Format(lngYear, "0") & vbCrLf & _
-                    "  --> Species = " & strSpecies & vbCrLf & _
-                    "  --> Found " & Format(lngTotalCount, "#,##0") & " overlapping features" & vbCrLf
-                
-                If lngCoverCount = 0 And lngDensityCount = 0 Then
-                  If lngCoverCount = 0 Then
-                    strCoverQueryString = strPrefix & pCoverFClass.OIDFieldName & strSuffix & " = " & Format(pFeature.OID, "0")
-                    strQueryLine = strQueryLine & "  --> Cover Query String: " & strCoverQueryString & vbCrLf
-                    booFoundIntersect = True  ' JUST TO FORCE EVENT TO BE WRITTEN TO REPORT
-                    lngIntersectCounter = 2 ' JUST TO FORCE EVENT TO BE WRITTEN TO REPORT
-                  End If
-                End If
-                
-                If lngCoverCount > 0 Then
-                  strQueryLine = strQueryLine & "  --> Cover Polygon OID values = "
-                  Set pFCursor2 = pCoverFClass.Search(pSpFilt, True)
-                  Set pFeature2 = pFCursor2.NextFeature
-                  Do Until pFeature2 Is Nothing
-                    Set pPoly2 = pFeature2.ShapeCopy
-                    dblDist = MyGeometricOperations.DistanceBetweenPolygons(True, Array(pPoly1, pPoly2))
-                    If dblDist = 0 Then
-                      lngIntersectCounter = lngIntersectCounter + 1
-                      strQueryLine = strQueryLine & Format(pFeature2.OID, "0") & ", "
-                      strCoverQueryString = strCoverQueryString & _
-                          strPrefix & pCoverFClass.OIDFieldName & strSuffix & " = " & Format(pFeature2.OID, "0") & " OR "
-                      
-                      booFoundIntersect = True
-                    
-                    End If
-                    Set pFeature2 = pFCursor2.NextFeature
-                  Loop
-                  
-                  strCoverQueryString = Left(strCoverQueryString, Len(strCoverQueryString) - 4)
-                  strQueryLine = Left(strQueryLine, Len(strQueryLine) - 2) & vbCrLf & _
-                      "  --> Cover Query String: " & strCoverQueryString & vbCrLf
-                End If
-                
-                If lngDensityCount > 0 Then
-                  strQueryLine = strQueryLine & "  --> Density Polygon OID values = "
-                  Set pFCursor2 = pDensityFClass.Search(pSpFilt, True)
-                  Set pFeature2 = pFCursor2.NextFeature
-                  Do Until pFeature2 Is Nothing
-                    Set pPoly2 = pFeature2.ShapeCopy
-                    
-                    dblDist = MyGeometricOperations.DistanceBetweenPolygons(True, Array(pPoly1, pPoly2))
-                    If dblDist = 0 Then
-                      lngIntersectCounter = lngIntersectCounter + 1
-                    
-                      strQueryLine = strQueryLine & Format(pFeature2.OID, "0") & ", "
-                      strDensityQueryString = strDensityQueryString & _
-                          strPrefix & pDensityFClass.OIDFieldName & strSuffix & " = " & Format(pFeature2.OID, "0") & " OR "
-                      
-                      booFoundIntersect = True
-                    
-                    End If
-                  
-                    Set pFeature2 = pFCursor2.NextFeature
-                  Loop
-                  
-                  If lngIntersectCounter > 0 Then
-                    strDensityQueryString = Left(strDensityQueryString, Len(strDensityQueryString) - 4)
-                    strQueryLine = Left(strQueryLine, Len(strQueryLine) - 2) & vbCrLf & _
-                        "  --> Density Query String: " & strDensityQueryString & vbCrLf
-                  End If
-                End If
-                
-                If booFoundIntersect And lngIntersectCounter > 1 And _
-                        Not MyGeneralOperations.CheckCollectionForKey(pDoneQueryStrings, strQueryLine) Then
-                  Debug.Print "  ***** Count = " & Format(lngTotalCount) & "..." & pQueryFilt.WhereClause
-                  pDoneQueryStrings.Add True, strQueryLine
-                  lngCounter = lngCounter + 1
-                  strCheckReport = strCheckReport & Format(lngCounter, "#,##0") & "] " & strQueryLine & vbCrLf
-                End If
-              End If
-              Set pFeature = pFCursor.NextFeature
-            Loop
-            
-            ' NEXT DENSITY
-            Set pFCursor = pDensityFClass.Search(pQueryFilt, False)
-            Set pFeature = pFCursor.NextFeature
-            Do Until pFeature Is Nothing
-              Set pSpFilt.Geometry = pFeature.ShapeCopy
-              lngCoverCount = pCoverFClass.FeatureCount(pSpFilt)
-              lngDensityCount = pDensityFClass.FeatureCount(pSpFilt)
-              lngTotalCount = lngCoverCount + lngDensityCount
-              If lngTotalCount <> 1 Then
-                strCoverQueryString = ""
-                strDensityQueryString = ""
-                strQueryLine = ""
-                booFoundIntersect = False
-                lngIntersectCounter = 0
-                
-                strSitePlot = pSiteLookup.Item(strQuadrat)
-                strQueryLine = strQuadrat & " (" & strSitePlot & "), " & Format(lngYear, "0") & vbCrLf & _
-                    "  --> Species = " & strSpecies & vbCrLf & _
-                    "  --> Found " & Format(lngTotalCount, "#,##0") & " overlapping features" & vbCrLf
-                If lngCoverCount = 0 And lngDensityCount = 0 Then
-                  If lngDensityCount = 0 Then
-                    strDensityQueryString = strPrefix & pCoverFClass.OIDFieldName & strSuffix & " = " & Format(pFeature.OID, "0")
-                    strQueryLine = strQueryLine & "  --> Density Query String: " & strDensityQueryString & vbCrLf
-                    booFoundIntersect = True
-                  End If
-                End If
-                If lngCoverCount > 0 Then
-                  strQueryLine = strQueryLine & "  --> Cover Polygon OID values = "
-                  Set pFCursor2 = pCoverFClass.Search(pSpFilt, True)
-                  Set pFeature2 = pFCursor2.NextFeature
-                  Do Until pFeature2 Is Nothing
-                    Set pPoly2 = pFeature2.ShapeCopy
-                    dblDist = MyGeometricOperations.DistanceBetweenPolygons(True, Array(pPoly1, pPoly2))
-                    If dblDist = 0 Then
-                      lngIntersectCounter = lngIntersectCounter + 1
-                    
-                      strQueryLine = strQueryLine & Format(pFeature2.OID, "0") & ", "
-                      strCoverQueryString = strCoverQueryString & _
-                          strPrefix & pCoverFClass.OIDFieldName & strSuffix & " = " & Format(pFeature2.OID, "0") & " OR "
-                      booFoundIntersect = True
-                    End If
-                    Set pFeature2 = pFCursor2.NextFeature
-                  Loop
-                  strCoverQueryString = Left(strCoverQueryString, Len(strCoverQueryString) - 4)
-                  strQueryLine = Left(strQueryLine, Len(strQueryLine) - 2) & vbCrLf & _
-                      "  --> Cover Query String: " & strCoverQueryString & vbCrLf
-                End If
-                If lngDensityCount > 0 Then
-                  strQueryLine = strQueryLine & "  --> Density Polygon OID values = "
-                  Set pFCursor2 = pDensityFClass.Search(pSpFilt, True)
-                  Set pFeature2 = pFCursor2.NextFeature
-                  Do Until pFeature2 Is Nothing
-                    Set pPoly2 = pFeature2.ShapeCopy
-                    dblDist = MyGeometricOperations.DistanceBetweenPolygons(True, Array(pPoly1, pPoly2))
-                    If dblDist = 0 Then
-                      lngIntersectCounter = lngIntersectCounter + 1
-                    
-                      strQueryLine = strQueryLine & Format(pFeature2.OID, "0") & ", "
-                      strDensityQueryString = strDensityQueryString & _
-                          strPrefix & pDensityFClass.OIDFieldName & strSuffix & " = " & Format(pFeature2.OID, "0") & " OR "
-                      booFoundIntersect = True
-                    End If
-                  
-                    Set pFeature2 = pFCursor2.NextFeature
-                  Loop
-                  If lngIntersectCounter > 0 Then
-                    strDensityQueryString = Left(strDensityQueryString, Len(strDensityQueryString) - 4)
-                    strQueryLine = Left(strQueryLine, Len(strQueryLine) - 2) & vbCrLf & _
-                        "  --> Density Query String: " & strDensityQueryString & vbCrLf
-                  End If
-                End If
-                
-                If booFoundIntersect And lngIntersectCounter > 1 And _
-                      Not MyGeneralOperations.CheckCollectionForKey(pDoneQueryStrings, strQueryLine) Then
-                  Debug.Print "  ***** Count = " & Format(lngTotalCount) & "..." & pQueryFilt.WhereClause
-                  pDoneQueryStrings.Add True, strQueryLine
-                  lngCounter = lngCounter + 1
-                  strCheckReport = strCheckReport & Format(lngCounter, "#,##0") & "] " & strQueryLine & vbCrLf
-                End If
-              End If
-              Set pFeature = pFCursor.NextFeature
-            Loop
-          End If
-        Next lngIndex2
-      End If
-      
-    Next lngIndex
-  Next lngYear
-    
-  Dim pDataObj As New MSForms.DataObject
-  pDataObj.SetText strCheckReport
-  pDataObj.PutInClipboard
-  
-  Dim strPath As String
-  strPath = MyGeneralOperations.MakeUniquedBASEName( _
-      "D:\arcGIS_stuff\consultation\Margaret_Moore\Intermediate_Analyses\Overlapping_Features.txt")
-  MyGeneralOperations.WriteTextFile strPath, strCheckReport, True, False
-  pSBar.HideProgressBar
-  pProg.position = 0
-  Debug.Print "Done..."
-  Debug.Print MyGeneralOperations.ReturnTimeElapsedFromMilliseconds(GetTickCount - lngStart)
-  
-  
-ClearMemory:
-  Set pMxDoc = Nothing
-  Set pApp = Nothing
-  Set pSBar = Nothing
-  Set pProg = Nothing
-  Set pWS = Nothing
-  Set pWSFact = Nothing
-  Set pDensityFClass = Nothing
-  Set pCoverFClass = Nothing
-  Set pFCursor = Nothing
-  Set pFeature = Nothing
-  Set pSiteLookup = Nothing
-  Erase strAllSpecies
-  Erase strAllSites
-  Erase lngAllQuadrats
-  Set pDonePlots = Nothing
-  Set pDoneSpecies = Nothing
-  Set pQueryFilt = Nothing
-  Set pSpFilt = Nothing
-  Set pFCursor2 = Nothing
-  Set pFeature2 = Nothing
-  Set pDataObj = Nothing
-
-
-
-End Sub
 Public Sub SummarizeSpeciesByCorrectQuadrat()
 
   Dim lngStart As Long
   lngStart = GetTickCount
-  
+
   Dim pMxDoc As IMxDocument
   Dim pApp As IApplication
   Dim pSBar As IStatusBar
   Dim pProg As IStepProgressor
-  
+
   Set pMxDoc = ThisDocument
   Set pApp = Application
   Set pSBar = pApp.StatusBar
   Set pProg = pSBar.ProgressBar
-  
+
   Dim lngCount As Long
   Dim lngCounter As Long
-  
+
   Dim strCombinePath As String
   Dim strModifiedRoot As String
   Dim strContainerFolder As String
   Dim strExportPath As String
   Call DeclareWorkspaces(strCombinePath, , , , strModifiedRoot, strContainerFolder)
   strExportPath = MyGeneralOperations.MakeUniquedBASEName(strContainerFolder & "\Summarize_by_Quadrat.csv")
-  
+
   Dim pWS As IFeatureWorkspace
   Dim pWSFact As IWorkspaceFactory
   Set pWSFact = New FileGDBWorkspaceFactory
   Set pWS = pWSFact.OpenFromFile(strModifiedRoot & "\Combined_by_Site.gdb", 0)
-  
+
   Dim pDensityFClass As IFeatureClass
   Dim pCoverFClass As IFeatureClass
   Dim pFCursor As IFeatureCursor
@@ -1648,7 +1122,7 @@ Public Sub SummarizeSpeciesByCorrectQuadrat()
   Dim lngCoverSpeciesIndex As Long
   Dim lngCoverPlotIndex As Long
   Dim lngCoverSiteIndex As Long
-  
+
   Set pDensityFClass = pWS.OpenFeatureClass("Density_All")
   lngDensitySpeciesIndex = pDensityFClass.FindField("Species")
   lngDensityPlotIndex = pDensityFClass.FindField("Plot")
@@ -1657,32 +1131,32 @@ Public Sub SummarizeSpeciesByCorrectQuadrat()
   lngCoverSpeciesIndex = pCoverFClass.FindField("Species")
   lngCoverPlotIndex = pCoverFClass.FindField("Plot")
   lngCoverSiteIndex = pCoverFClass.FindField("Site")
-  
+
   lngCount = pDensityFClass.FeatureCount(Nothing) + pCoverFClass.FeatureCount(Nothing)
-  
+
   Dim strSpecies As String
   Dim strSite As String
   Dim lngQuadrat As Long
   Dim lngIndex As Long
   Dim lngIndex2 As Long
-  
+
   Dim strAllSpecies() As String
   Dim strAllSites() As String
   Dim lngAllQuadrats() As Long
   Dim lngAllSpeciesIndex As Long
   Dim lngAllPlotsIndex As Long
-  
+
   Dim pDonePlots As New Collection
   Dim pDoneSpecies As New Collection
-  
+
   lngAllSpeciesIndex = -1
   lngAllPlotsIndex = -1
-  
+
   pSBar.ShowProgressBar "Initial Pass...", 0, lngCount, 1, True
   pProg.position = 0
-  
+
   lngCounter = 0
-    
+
   Set pFCursor = pDensityFClass.Search(Nothing, False)
   Set pFeature = pFCursor.NextFeature
   Do Until pFeature Is Nothing
@@ -1699,9 +1173,7 @@ Public Sub SummarizeSpeciesByCorrectQuadrat()
       ReDim Preserve strAllSpecies(lngAllSpeciesIndex)
       strAllSpecies(lngAllSpeciesIndex) = strSpecies
     End If
-    
-'    strSite = pFeature.Value(lngDensityPlotIndex)
-'    strSite = pFeature.Value(lngDensitySiteIndex) & ": Plot " & pFeature.Value(lngDensityPlotIndex)
+
     strSite = pFeature.Value(lngDensitySiteIndex) & ": Quadrat " & pFeature.Value(lngDensityPlotIndex)
     If Not MyGeneralOperations.CheckCollectionForKey(pDonePlots, strSite) Then
       pDonePlots.Add True, strSite
@@ -1709,10 +1181,10 @@ Public Sub SummarizeSpeciesByCorrectQuadrat()
       ReDim Preserve strAllSites(lngAllPlotsIndex)
       strAllSites(lngAllPlotsIndex) = strSite
     End If
-    
+
     Set pFeature = pFCursor.NextFeature
   Loop
-    
+
   Set pFCursor = pCoverFClass.Search(Nothing, False)
   Set pFeature = pFCursor.NextFeature
   Do Until pFeature Is Nothing
@@ -1729,9 +1201,7 @@ Public Sub SummarizeSpeciesByCorrectQuadrat()
       ReDim Preserve strAllSpecies(lngAllSpeciesIndex)
       strAllSpecies(lngAllSpeciesIndex) = strSpecies
     End If
-    
-'    strSite = pFeature.Value(lngCoverPlotIndex)
-'    strSite = pFeature.Value(lngCoverSiteIndex) & ": Plot " & pFeature.Value(lngCoverPlotIndex)
+
     strSite = pFeature.Value(lngCoverSiteIndex) & ": Quadrat " & pFeature.Value(lngCoverPlotIndex)
     If Not MyGeneralOperations.CheckCollectionForKey(pDonePlots, strSite) Then
       pDonePlots.Add True, strSite
@@ -1739,32 +1209,32 @@ Public Sub SummarizeSpeciesByCorrectQuadrat()
       ReDim Preserve strAllSites(lngAllPlotsIndex)
       strAllSites(lngAllPlotsIndex) = strSite
     End If
-    
+
     Set pFeature = pFCursor.NextFeature
   Loop
-  
+
   QuickSort.StringsAscending strAllSites, 0, UBound(strAllSites)
   QuickSort.StringsAscending strAllSpecies, 0, UBound(strAllSpecies)
-  
+
   Dim pSpeciesIndexes As New Collection
   Dim pSiteIndexes As New Collection
-    
+
   For lngIndex = 0 To UBound(strAllSpecies)
     pSpeciesIndexes.Add lngIndex, strAllSpecies(lngIndex)
   Next lngIndex
   For lngIndex = 0 To UBound(strAllSites)
     pSiteIndexes.Add lngIndex, strAllSites(lngIndex)
   Next lngIndex
-  
+
   Dim lngCounts() As Long
   ReDim lngCounts(UBound(strAllSpecies), UBound(strAllSites))
-  
+
   Dim lngSpeciesIndex As Long
   Dim lngSiteIndex As Long
-  
+
   pSBar.ShowProgressBar "Second Pass...", 0, lngCount, 1, True
   pProg.position = 0
-  
+
   Set pFCursor = pDensityFClass.Search(Nothing, False)
   Set pFeature = pFCursor.NextFeature
   Do Until pFeature Is Nothing
@@ -1776,17 +1246,15 @@ Public Sub SummarizeSpeciesByCorrectQuadrat()
     strSpecies = Trim(pFeature.Value(lngDensitySpeciesIndex))
     If strSpecies = "" Then strSpecies = "<-- Species Name Missing -->"
     lngSpeciesIndex = pSpeciesIndexes.Item(strSpecies)
-    
-'    strSite = pFeature.Value(lngDensityPlotIndex)
-'    strSite = pFeature.Value(lngDensitySiteIndex) & ": Plot " & pFeature.Value(lngDensityPlotIndex)
+
     strSite = pFeature.Value(lngDensitySiteIndex) & ": Quadrat " & pFeature.Value(lngDensityPlotIndex)
     lngSiteIndex = pSiteIndexes.Item(strSite)
-    
+
     lngCounts(lngSpeciesIndex, lngSiteIndex) = lngCounts(lngSpeciesIndex, lngSiteIndex) + 1
-        
+
     Set pFeature = pFCursor.NextFeature
   Loop
-    
+
   Set pFCursor = pCoverFClass.Search(Nothing, False)
   Set pFeature = pFCursor.NextFeature
   Do Until pFeature Is Nothing
@@ -1798,25 +1266,24 @@ Public Sub SummarizeSpeciesByCorrectQuadrat()
     strSpecies = Trim(pFeature.Value(lngCoverSpeciesIndex))
     If strSpecies = "" Then strSpecies = "<-- Species Name Missing -->"
     lngSpeciesIndex = pSpeciesIndexes.Item(strSpecies)
-    
-'    strSite = pFeature.Value(lngCoverSiteIndex) & ": Plot " & pFeature.Value(lngCoverPlotIndex)
+
     strSite = pFeature.Value(lngCoverSiteIndex) & ": Quadrat " & pFeature.Value(lngCoverPlotIndex)
     lngSiteIndex = pSiteIndexes.Item(strSite)
-    
+
     lngCounts(lngSpeciesIndex, lngSiteIndex) = lngCounts(lngSpeciesIndex, lngSiteIndex) + 1
-    
+
     Set pFeature = pFCursor.NextFeature
   Loop
-  
+
   Dim strLine As String
   Dim strReport As String
-  
+
   strLine = """Species Name"","
   For lngIndex = 0 To UBound(strAllSites)
     strLine = strLine & """" & strAllSites(lngIndex) & IIf(lngIndex = UBound(strAllSites), """", """,")
   Next lngIndex
   strReport = strLine & vbCrLf
-  
+
   For lngIndex = 0 To UBound(strAllSpecies)
     strSpecies = Trim(strAllSpecies(lngIndex))
     strLine = """" & IIf(strSpecies = "", "<Null>", strSpecies) & ""","
@@ -1825,21 +1292,14 @@ Public Sub SummarizeSpeciesByCorrectQuadrat()
     Next lngIndex2
     strReport = strReport & strLine & vbCrLf
   Next lngIndex
-  
-  
-'  Dim pDataObj As New MSForms.DataObject
-'  pDataObj.SetText Replace(strReport, ",", vbTab)
-'  pDataObj.PutInClipboard
-  
+
   MyGeneralOperations.WriteTextFile strExportPath, strReport, True, False
-  
-  
+
   pSBar.HideProgressBar
   pProg.position = 0
   Debug.Print "Done..."
   Debug.Print MyGeneralOperations.ReturnTimeElapsedFromMilliseconds(GetTickCount - lngStart)
-  
-  
+
 ClearMemory:
   Set pMxDoc = Nothing
   Set pApp = Nothing
@@ -1860,43 +1320,38 @@ ClearMemory:
   Set pSiteIndexes = Nothing
   Erase lngCounts
 
-
-
 End Sub
-
-
-
 
 Public Sub SummarizeSpeciesByPlot()
 
   Dim lngStart As Long
   lngStart = GetTickCount
-  
+
   Dim pMxDoc As IMxDocument
   Dim pApp As IApplication
   Dim pSBar As IStatusBar
   Dim pProg As IStepProgressor
-  
+
   Set pMxDoc = ThisDocument
   Set pApp = Application
   Set pSBar = pApp.StatusBar
   Set pProg = pSBar.ProgressBar
-  
+
   Dim lngCount As Long
   Dim lngCounter As Long
-  
+
   Dim strCombinePath As String
   Dim strModifiedRoot As String
   Dim strContainerFolder As String
   Dim strExportPath As String
   Call DeclareWorkspaces(strCombinePath, , , , strModifiedRoot, strContainerFolder)
   strExportPath = MyGeneralOperations.MakeUniquedBASEName(strContainerFolder & "\Summarize_by_Plot.csv")
-  
+
   Dim pWS As IFeatureWorkspace
   Dim pWSFact As IWorkspaceFactory
   Set pWSFact = New FileGDBWorkspaceFactory
   Set pWS = pWSFact.OpenFromFile(strModifiedRoot & "\Combined_by_Site.gdb", 0)
-  
+
   Dim pDensityFClass As IFeatureClass
   Dim pCoverFClass As IFeatureClass
   Dim pFCursor As IFeatureCursor
@@ -1907,7 +1362,7 @@ Public Sub SummarizeSpeciesByPlot()
   Dim lngCoverSpeciesIndex As Long
   Dim lngCoverPlotIndex As Long
   Dim lngCoverSiteIndex As Long
-  
+
   Set pDensityFClass = pWS.OpenFeatureClass("Density_All")
   lngDensitySpeciesIndex = pDensityFClass.FindField("Species")
   lngDensityPlotIndex = pDensityFClass.FindField("Plot")
@@ -1916,32 +1371,32 @@ Public Sub SummarizeSpeciesByPlot()
   lngCoverSpeciesIndex = pCoverFClass.FindField("Species")
   lngCoverPlotIndex = pCoverFClass.FindField("Plot")
   lngCoverSiteIndex = pCoverFClass.FindField("Site")
-  
+
   lngCount = pDensityFClass.FeatureCount(Nothing) + pCoverFClass.FeatureCount(Nothing)
-  
+
   Dim strSpecies As String
   Dim strSite As String
   Dim lngQuadrat As Long
   Dim lngIndex As Long
   Dim lngIndex2 As Long
-  
+
   Dim strAllSpecies() As String
   Dim strAllSites() As String
   Dim lngAllQuadrats() As Long
   Dim lngAllSpeciesIndex As Long
   Dim lngAllPlotsIndex As Long
-  
+
   Dim pDonePlots As New Collection
   Dim pDoneSpecies As New Collection
-  
+
   lngAllSpeciesIndex = -1
   lngAllPlotsIndex = -1
-  
+
   pSBar.ShowProgressBar "Initial Pass...", 0, lngCount, 1, True
   pProg.position = 0
-  
+
   lngCounter = 0
-    
+
   Set pFCursor = pDensityFClass.Search(Nothing, False)
   Set pFeature = pFCursor.NextFeature
   Do Until pFeature Is Nothing
@@ -1958,8 +1413,7 @@ Public Sub SummarizeSpeciesByPlot()
       ReDim Preserve strAllSpecies(lngAllSpeciesIndex)
       strAllSpecies(lngAllSpeciesIndex) = strSpecies
     End If
-    
-'    strSite = pFeature.Value(lngDensityPlotIndex)
+
     strSite = pFeature.Value(lngDensitySiteIndex) & ": Plot " & pFeature.Value(lngDensityPlotIndex)
     If Not MyGeneralOperations.CheckCollectionForKey(pDonePlots, strSite) Then
       pDonePlots.Add True, strSite
@@ -1967,10 +1421,10 @@ Public Sub SummarizeSpeciesByPlot()
       ReDim Preserve strAllSites(lngAllPlotsIndex)
       strAllSites(lngAllPlotsIndex) = strSite
     End If
-    
+
     Set pFeature = pFCursor.NextFeature
   Loop
-    
+
   Set pFCursor = pCoverFClass.Search(Nothing, False)
   Set pFeature = pFCursor.NextFeature
   Do Until pFeature Is Nothing
@@ -1987,8 +1441,7 @@ Public Sub SummarizeSpeciesByPlot()
       ReDim Preserve strAllSpecies(lngAllSpeciesIndex)
       strAllSpecies(lngAllSpeciesIndex) = strSpecies
     End If
-    
-'    strSite = pFeature.Value(lngCoverPlotIndex)
+
     strSite = pFeature.Value(lngCoverSiteIndex) & ": Plot " & pFeature.Value(lngCoverPlotIndex)
     If Not MyGeneralOperations.CheckCollectionForKey(pDonePlots, strSite) Then
       pDonePlots.Add True, strSite
@@ -1996,32 +1449,32 @@ Public Sub SummarizeSpeciesByPlot()
       ReDim Preserve strAllSites(lngAllPlotsIndex)
       strAllSites(lngAllPlotsIndex) = strSite
     End If
-    
+
     Set pFeature = pFCursor.NextFeature
   Loop
-  
+
   QuickSort.StringsAscending strAllSites, 0, UBound(strAllSites)
   QuickSort.StringsAscending strAllSpecies, 0, UBound(strAllSpecies)
-  
+
   Dim pSpeciesIndexes As New Collection
   Dim pSiteIndexes As New Collection
-    
+
   For lngIndex = 0 To UBound(strAllSpecies)
     pSpeciesIndexes.Add lngIndex, strAllSpecies(lngIndex)
   Next lngIndex
   For lngIndex = 0 To UBound(strAllSites)
     pSiteIndexes.Add lngIndex, strAllSites(lngIndex)
   Next lngIndex
-  
+
   Dim lngCounts() As Long
   ReDim lngCounts(UBound(strAllSpecies), UBound(strAllSites))
-  
+
   Dim lngSpeciesIndex As Long
   Dim lngSiteIndex As Long
-  
+
   pSBar.ShowProgressBar "Second Pass...", 0, lngCount, 1, True
   pProg.position = 0
-  
+
   Set pFCursor = pDensityFClass.Search(Nothing, False)
   Set pFeature = pFCursor.NextFeature
   Do Until pFeature Is Nothing
@@ -2033,16 +1486,15 @@ Public Sub SummarizeSpeciesByPlot()
     strSpecies = Trim(pFeature.Value(lngDensitySpeciesIndex))
     If strSpecies = "" Then strSpecies = "<-- Species Name Missing -->"
     lngSpeciesIndex = pSpeciesIndexes.Item(strSpecies)
-    
-'    strSite = pFeature.Value(lngDensityPlotIndex)
+
     strSite = pFeature.Value(lngDensitySiteIndex) & ": Plot " & pFeature.Value(lngDensityPlotIndex)
     lngSiteIndex = pSiteIndexes.Item(strSite)
-    
+
     lngCounts(lngSpeciesIndex, lngSiteIndex) = lngCounts(lngSpeciesIndex, lngSiteIndex) + 1
-        
+
     Set pFeature = pFCursor.NextFeature
   Loop
-    
+
   Set pFCursor = pCoverFClass.Search(Nothing, False)
   Set pFeature = pFCursor.NextFeature
   Do Until pFeature Is Nothing
@@ -2054,24 +1506,24 @@ Public Sub SummarizeSpeciesByPlot()
     strSpecies = Trim(pFeature.Value(lngCoverSpeciesIndex))
     If strSpecies = "" Then strSpecies = "<-- Species Name Missing -->"
     lngSpeciesIndex = pSpeciesIndexes.Item(strSpecies)
-    
+
     strSite = pFeature.Value(lngCoverSiteIndex) & ": Plot " & pFeature.Value(lngCoverPlotIndex)
     lngSiteIndex = pSiteIndexes.Item(strSite)
-    
+
     lngCounts(lngSpeciesIndex, lngSiteIndex) = lngCounts(lngSpeciesIndex, lngSiteIndex) + 1
-    
+
     Set pFeature = pFCursor.NextFeature
   Loop
-  
+
   Dim strLine As String
   Dim strReport As String
-  
+
   strLine = """Species Name"","
   For lngIndex = 0 To UBound(strAllSites)
     strLine = strLine & """" & strAllSites(lngIndex) & IIf(lngIndex = UBound(strAllSites), """", """,")
   Next lngIndex
   strReport = strLine & vbCrLf
-  
+
   For lngIndex = 0 To UBound(strAllSpecies)
     strSpecies = Trim(strAllSpecies(lngIndex))
     strLine = """" & IIf(strSpecies = "", "<Null>", strSpecies) & ""","
@@ -2080,21 +1532,14 @@ Public Sub SummarizeSpeciesByPlot()
     Next lngIndex2
     strReport = strReport & strLine & vbCrLf
   Next lngIndex
-  
-  
-'  Dim pDataObj As New MSForms.DataObject
-'  pDataObj.SetText Replace(strReport, ",", vbTab)
-'  pDataObj.PutInClipboard
-  
+
   MyGeneralOperations.WriteTextFile strExportPath, strReport, True, False
-  
-  
+
   pSBar.HideProgressBar
   pProg.position = 0
   Debug.Print "Done..."
   Debug.Print MyGeneralOperations.ReturnTimeElapsedFromMilliseconds(GetTickCount - lngStart)
-  
-  
+
 ClearMemory:
   Set pMxDoc = Nothing
   Set pApp = Nothing
@@ -2115,41 +1560,38 @@ ClearMemory:
   Set pSiteIndexes = Nothing
   Erase lngCounts
 
-
-
 End Sub
-
 
 Public Sub SummarizeSpeciesBySite()
 
   Dim lngStart As Long
   lngStart = GetTickCount
-  
+
   Dim pMxDoc As IMxDocument
   Dim pApp As IApplication
   Dim pSBar As IStatusBar
   Dim pProg As IStepProgressor
-  
+
   Set pMxDoc = ThisDocument
   Set pApp = Application
   Set pSBar = pApp.StatusBar
   Set pProg = pSBar.ProgressBar
-  
+
   Dim lngCount As Long
   Dim lngCounter As Long
-  
+
   Dim strCombinePath As String
   Dim strModifiedRoot As String
   Dim strContainerFolder As String
   Dim strExportPath As String
   Call DeclareWorkspaces(strCombinePath, , , , strModifiedRoot, strContainerFolder)
   strExportPath = MyGeneralOperations.MakeUniquedBASEName(strContainerFolder & "\Summarize_by_Site.csv")
-  
+
   Dim pWS As IFeatureWorkspace
   Dim pWSFact As IWorkspaceFactory
   Set pWSFact = New FileGDBWorkspaceFactory
   Set pWS = pWSFact.OpenFromFile(strModifiedRoot & "\Combined_by_Site.gdb", 0)
-  
+
   Dim pDensityFClass As IFeatureClass
   Dim pCoverFClass As IFeatureClass
   Dim pFCursor As IFeatureCursor
@@ -2158,39 +1600,39 @@ Public Sub SummarizeSpeciesBySite()
   Dim lngDensityPlotIndex As Long
   Dim lngCoverSpeciesIndex As Long
   Dim lngCoverPlotIndex As Long
-  
+
   Set pDensityFClass = pWS.OpenFeatureClass("Density_All")
   lngDensitySpeciesIndex = pDensityFClass.FindField("Species")
   lngDensityPlotIndex = pDensityFClass.FindField("Site")
   Set pCoverFClass = pWS.OpenFeatureClass("Cover_All")
   lngCoverSpeciesIndex = pCoverFClass.FindField("Species")
   lngCoverPlotIndex = pCoverFClass.FindField("Site")
-  
+
   lngCount = pDensityFClass.FeatureCount(Nothing) + pCoverFClass.FeatureCount(Nothing)
-  
+
   Dim strSpecies As String
   Dim strSite As String
   Dim lngQuadrat As Long
   Dim lngIndex As Long
   Dim lngIndex2 As Long
-  
+
   Dim strAllSpecies() As String
   Dim strAllSites() As String
   Dim lngAllQuadrats() As Long
   Dim lngAllSpeciesIndex As Long
   Dim lngAllPlotsIndex As Long
-  
+
   Dim pDonePlots As New Collection
   Dim pDoneSpecies As New Collection
-  
+
   lngAllSpeciesIndex = -1
   lngAllPlotsIndex = -1
-  
+
   pSBar.ShowProgressBar "Initial Pass...", 0, lngCount, 1, True
   pProg.position = 0
-  
+
   lngCounter = 0
-    
+
   Set pFCursor = pDensityFClass.Search(Nothing, False)
   Set pFeature = pFCursor.NextFeature
   Do Until pFeature Is Nothing
@@ -2207,7 +1649,7 @@ Public Sub SummarizeSpeciesBySite()
       ReDim Preserve strAllSpecies(lngAllSpeciesIndex)
       strAllSpecies(lngAllSpeciesIndex) = strSpecies
     End If
-    
+
     strSite = pFeature.Value(lngDensityPlotIndex)
     If Not MyGeneralOperations.CheckCollectionForKey(pDonePlots, strSite) Then
       pDonePlots.Add True, strSite
@@ -2215,10 +1657,10 @@ Public Sub SummarizeSpeciesBySite()
       ReDim Preserve strAllSites(lngAllPlotsIndex)
       strAllSites(lngAllPlotsIndex) = strSite
     End If
-    
+
     Set pFeature = pFCursor.NextFeature
   Loop
-    
+
   Set pFCursor = pCoverFClass.Search(Nothing, False)
   Set pFeature = pFCursor.NextFeature
   Do Until pFeature Is Nothing
@@ -2235,7 +1677,7 @@ Public Sub SummarizeSpeciesBySite()
       ReDim Preserve strAllSpecies(lngAllSpeciesIndex)
       strAllSpecies(lngAllSpeciesIndex) = strSpecies
     End If
-    
+
     strSite = pFeature.Value(lngCoverPlotIndex)
     If Not MyGeneralOperations.CheckCollectionForKey(pDonePlots, strSite) Then
       pDonePlots.Add True, strSite
@@ -2243,32 +1685,32 @@ Public Sub SummarizeSpeciesBySite()
       ReDim Preserve strAllSites(lngAllPlotsIndex)
       strAllSites(lngAllPlotsIndex) = strSite
     End If
-    
+
     Set pFeature = pFCursor.NextFeature
   Loop
-  
+
   QuickSort.StringsAscending strAllSites, 0, UBound(strAllSites)
   QuickSort.StringsAscending strAllSpecies, 0, UBound(strAllSpecies)
-  
+
   Dim pSpeciesIndexes As New Collection
   Dim pSiteIndexes As New Collection
-    
+
   For lngIndex = 0 To UBound(strAllSpecies)
     pSpeciesIndexes.Add lngIndex, strAllSpecies(lngIndex)
   Next lngIndex
   For lngIndex = 0 To UBound(strAllSites)
     pSiteIndexes.Add lngIndex, strAllSites(lngIndex)
   Next lngIndex
-  
+
   Dim lngCounts() As Long
   ReDim lngCounts(UBound(strAllSpecies), UBound(strAllSites))
-  
+
   Dim lngSpeciesIndex As Long
   Dim lngSiteIndex As Long
-  
+
   pSBar.ShowProgressBar "Second Pass...", 0, lngCount, 1, True
   pProg.position = 0
-  
+
   Set pFCursor = pDensityFClass.Search(Nothing, False)
   Set pFeature = pFCursor.NextFeature
   Do Until pFeature Is Nothing
@@ -2280,15 +1722,15 @@ Public Sub SummarizeSpeciesBySite()
     strSpecies = Trim(pFeature.Value(lngDensitySpeciesIndex))
     If strSpecies = "" Then strSpecies = "<-- Species Name Missing -->"
     lngSpeciesIndex = pSpeciesIndexes.Item(strSpecies)
-    
+
     strSite = pFeature.Value(lngDensityPlotIndex)
     lngSiteIndex = pSiteIndexes.Item(strSite)
-    
+
     lngCounts(lngSpeciesIndex, lngSiteIndex) = lngCounts(lngSpeciesIndex, lngSiteIndex) + 1
-        
+
     Set pFeature = pFCursor.NextFeature
   Loop
-    
+
   Set pFCursor = pCoverFClass.Search(Nothing, False)
   Set pFeature = pFCursor.NextFeature
   Do Until pFeature Is Nothing
@@ -2300,24 +1742,24 @@ Public Sub SummarizeSpeciesBySite()
     strSpecies = Trim(pFeature.Value(lngCoverSpeciesIndex))
     If strSpecies = "" Then strSpecies = "<-- Species Name Missing -->"
     lngSpeciesIndex = pSpeciesIndexes.Item(strSpecies)
-    
+
     strSite = pFeature.Value(lngCoverPlotIndex)
     lngSiteIndex = pSiteIndexes.Item(strSite)
-    
+
     lngCounts(lngSpeciesIndex, lngSiteIndex) = lngCounts(lngSpeciesIndex, lngSiteIndex) + 1
-    
+
     Set pFeature = pFCursor.NextFeature
   Loop
-  
+
   Dim strLine As String
   Dim strReport As String
-  
+
   strLine = """Species Name"","
   For lngIndex = 0 To UBound(strAllSites)
     strLine = strLine & """" & strAllSites(lngIndex) & IIf(lngIndex = UBound(strAllSites), """", """,")
   Next lngIndex
   strReport = strLine & vbCrLf
-  
+
   For lngIndex = 0 To UBound(strAllSpecies)
     strSpecies = Trim(strAllSpecies(lngIndex))
     strLine = """" & IIf(strSpecies = "", "<Null>", strSpecies) & ""","
@@ -2326,19 +1768,14 @@ Public Sub SummarizeSpeciesBySite()
     Next lngIndex2
     strReport = strReport & strLine & vbCrLf
   Next lngIndex
-  
-'  Dim pDataObj As New MSForms.DataObject
-'  pDataObj.SetText Replace(strReport, ",", vbTab)
-'  pDataObj.PutInClipboard
-  
+
   MyGeneralOperations.WriteTextFile strExportPath, strReport, True, False
-  
+
   pSBar.HideProgressBar
   pProg.position = 0
   Debug.Print "Done..."
   Debug.Print MyGeneralOperations.ReturnTimeElapsedFromMilliseconds(GetTickCount - lngStart)
-  
-  
+
 ClearMemory:
   Set pMxDoc = Nothing
   Set pApp = Nothing
@@ -2358,8 +1795,6 @@ ClearMemory:
   Set pSpeciesIndexes = Nothing
   Set pSiteIndexes = Nothing
   Erase lngCounts
-
-
 
 End Sub
 
@@ -2367,32 +1802,32 @@ Public Sub SummarizeSpeciesByQuadrat()
 
   Dim lngStart As Long
   lngStart = GetTickCount
-  
+
   Dim pMxDoc As IMxDocument
   Dim pApp As IApplication
   Dim pSBar As IStatusBar
   Dim pProg As IStepProgressor
-  
+
   Set pMxDoc = ThisDocument
   Set pApp = Application
   Set pSBar = pApp.StatusBar
   Set pProg = pSBar.ProgressBar
-  
+
   Dim lngCount As Long
   Dim lngCounter As Long
-  
+
   Dim strCombinePath As String
   Dim strModifiedRoot As String
   Dim strContainerFolder As String
   Dim strExportPath As String
   Call DeclareWorkspaces(strCombinePath, , , , strModifiedRoot, strContainerFolder)
   strExportPath = MyGeneralOperations.MakeUniquedBASEName(strContainerFolder & "\Summarize_by_Quadrat.csv")
-  
+
   Dim pWS As IFeatureWorkspace
   Dim pWSFact As IWorkspaceFactory
   Set pWSFact = New FileGDBWorkspaceFactory
   Set pWS = pWSFact.OpenFromFile(strModifiedRoot & "\Combined_by_Site.gdb", 0)
-  
+
   Dim pDensityFClass As IFeatureClass
   Dim pCoverFClass As IFeatureClass
   Dim pFCursor As IFeatureCursor
@@ -2401,39 +1836,39 @@ Public Sub SummarizeSpeciesByQuadrat()
   Dim lngDensityPlotIndex As Long
   Dim lngCoverSpeciesIndex As Long
   Dim lngCoverPlotIndex As Long
-  
+
   Set pDensityFClass = pWS.OpenFeatureClass("Density_All")
   lngDensitySpeciesIndex = pDensityFClass.FindField("Species")
   lngDensityPlotIndex = pDensityFClass.FindField("Quadrat")
   Set pCoverFClass = pWS.OpenFeatureClass("Cover_All")
   lngCoverSpeciesIndex = pCoverFClass.FindField("Species")
   lngCoverPlotIndex = pCoverFClass.FindField("Quadrat")
-  
+
   lngCount = pDensityFClass.FeatureCount(Nothing) + pCoverFClass.FeatureCount(Nothing)
-  
+
   Dim strSpecies As String
   Dim strPlot As String
   Dim lngQuadrat As Long
   Dim lngIndex As Long
   Dim lngIndex2 As Long
-  
+
   Dim strAllSpecies() As String
   Dim strAllPlots() As String
   Dim lngAllQuadrats() As Long
   Dim lngAllSpeciesIndex As Long
   Dim lngAllPlotsIndex As Long
-  
+
   Dim pDonePlots As New Collection
   Dim pDoneSpecies As New Collection
-  
+
   lngAllSpeciesIndex = -1
   lngAllPlotsIndex = -1
-  
+
   pSBar.ShowProgressBar "Initial Pass...", 0, lngCount, 1, True
   pProg.position = 0
-  
+
   lngCounter = 0
-    
+
   Set pFCursor = pDensityFClass.Search(Nothing, False)
   Set pFeature = pFCursor.NextFeature
   Do Until pFeature Is Nothing
@@ -2450,7 +1885,7 @@ Public Sub SummarizeSpeciesByQuadrat()
       ReDim Preserve strAllSpecies(lngAllSpeciesIndex)
       strAllSpecies(lngAllSpeciesIndex) = strSpecies
     End If
-    
+
     strPlot = pFeature.Value(lngDensityPlotIndex)
     If Not MyGeneralOperations.CheckCollectionForKey(pDonePlots, strPlot) Then
       pDonePlots.Add True, strPlot
@@ -2461,10 +1896,10 @@ Public Sub SummarizeSpeciesByQuadrat()
       ReDim Preserve lngAllQuadrats(lngAllPlotsIndex)
       lngAllQuadrats(lngAllPlotsIndex) = lngQuadrat
     End If
-    
+
     Set pFeature = pFCursor.NextFeature
   Loop
-    
+
   Set pFCursor = pCoverFClass.Search(Nothing, False)
   Set pFeature = pFCursor.NextFeature
   Do Until pFeature Is Nothing
@@ -2481,7 +1916,7 @@ Public Sub SummarizeSpeciesByQuadrat()
       ReDim Preserve strAllSpecies(lngAllSpeciesIndex)
       strAllSpecies(lngAllSpeciesIndex) = strSpecies
     End If
-    
+
     strPlot = pFeature.Value(lngCoverPlotIndex)
     If Not MyGeneralOperations.CheckCollectionForKey(pDonePlots, strPlot) Then
       pDonePlots.Add True, strPlot
@@ -2492,21 +1927,20 @@ Public Sub SummarizeSpeciesByQuadrat()
       ReDim Preserve lngAllQuadrats(lngAllPlotsIndex)
       lngAllQuadrats(lngAllPlotsIndex) = lngQuadrat
     End If
-    
+
     Set pFeature = pFCursor.NextFeature
   Loop
-  
+
   QuickSort.LongAscending lngAllQuadrats, 0, UBound(lngAllQuadrats)
   QuickSort.StringsAscending strAllSpecies, 0, UBound(strAllSpecies)
-  
+
   Dim pSpeciesIndexes As New Collection
   Dim pQuadratIndexes As New Collection
   Dim strQuadrat As String
   Dim strAllQuadrats() As String
-  
-  
+
   ReDim strAllQuadrats(UBound(lngAllQuadrats))
-  
+
   For lngIndex = 0 To UBound(strAllSpecies)
     pSpeciesIndexes.Add lngIndex, strAllSpecies(lngIndex)
   Next lngIndex
@@ -2515,17 +1949,16 @@ Public Sub SummarizeSpeciesByQuadrat()
     pQuadratIndexes.Add lngIndex, strQuadrat
     strAllQuadrats(lngIndex) = strQuadrat
   Next lngIndex
-  
+
   Dim lngCounts() As Long
   ReDim lngCounts(UBound(strAllSpecies), UBound(strAllQuadrats))
-  
+
   Dim lngSpeciesIndex As Long
   Dim lngQuadratIndex As Long
-  
-  
+
   pSBar.ShowProgressBar "Second Pass...", 0, lngCount, 1, True
   pProg.position = 0
-  
+
   Set pFCursor = pDensityFClass.Search(Nothing, False)
   Set pFeature = pFCursor.NextFeature
   Do Until pFeature Is Nothing
@@ -2537,15 +1970,15 @@ Public Sub SummarizeSpeciesByQuadrat()
     strSpecies = Trim(pFeature.Value(lngDensitySpeciesIndex))
     If strSpecies = "" Then strSpecies = "<-- Species Name Missing -->"
     lngSpeciesIndex = pSpeciesIndexes.Item(strSpecies)
-    
+
     strQuadrat = pFeature.Value(lngDensityPlotIndex)
     lngQuadratIndex = pQuadratIndexes.Item(strQuadrat)
-    
+
     lngCounts(lngSpeciesIndex, lngQuadratIndex) = lngCounts(lngSpeciesIndex, lngQuadratIndex) + 1
-        
+
     Set pFeature = pFCursor.NextFeature
   Loop
-    
+
   Set pFCursor = pCoverFClass.Search(Nothing, False)
   Set pFeature = pFCursor.NextFeature
   Do Until pFeature Is Nothing
@@ -2557,42 +1990,24 @@ Public Sub SummarizeSpeciesByQuadrat()
     strSpecies = Trim(pFeature.Value(lngCoverSpeciesIndex))
     If strSpecies = "" Then strSpecies = "<-- Species Name Missing -->"
     lngSpeciesIndex = pSpeciesIndexes.Item(strSpecies)
-    
+
     strQuadrat = pFeature.Value(lngCoverPlotIndex)
     lngQuadratIndex = pQuadratIndexes.Item(strQuadrat)
-    
+
     lngCounts(lngSpeciesIndex, lngQuadratIndex) = lngCounts(lngSpeciesIndex, lngQuadratIndex) + 1
-    
+
     Set pFeature = pFCursor.NextFeature
   Loop
-  
-'  Dim strLine As String
-'
-'  strLine = ","
-'  For lngIndex = 0 To UBound(lngAllQuadrats)
-'    strLine = strLine & """" & strAllQuadrats(lngIndex) & IIf(lngIndex = UBound(strAllQuadrats), """", """,")
-'  Next lngIndex
-'
-'  For lngIndex = 0 To UBound(strAllSpecies)
-'    strSpecies = Trim(strAllSpecies(lngIndex))
-'    strLine = """" & IIf(strSpecies = "", "<Null>", strSpecies) & ""","
-'    For lngIndex2 = 0 To UBound(strAllQuadrats)
-'      strLine = strLine & Format(lngCounts(lngIndex, lngIndex2), "0") & IIf(lngIndex2 = UBound(strAllQuadrats), "", ",")
-'    Next lngIndex2
-'    strLine = strLine & vbCrLf
-'  Next lngIndex
-  
-  
-  
+
   Dim strLine As String
   Dim strReport As String
-  
+
   strLine = """Species Name"","
   For lngIndex = 0 To UBound(lngAllQuadrats)
     strLine = strLine & """" & strAllQuadrats(lngIndex) & IIf(lngIndex = UBound(strAllQuadrats), """", """,")
   Next lngIndex
   strReport = strLine & vbCrLf
-  
+
   For lngIndex = 0 To UBound(strAllSpecies)
     strSpecies = Trim(strAllSpecies(lngIndex))
     strLine = """" & IIf(strSpecies = "", "<Null>", strSpecies) & ""","
@@ -2601,26 +2016,14 @@ Public Sub SummarizeSpeciesByQuadrat()
     Next lngIndex2
     strReport = strReport & strLine & vbCrLf
   Next lngIndex
-  
-  
-'  Dim pDataObj As New MSForms.DataObject
-'  pDataObj.SetText Replace(strReport, ",", vbTab)
-'  pDataObj.PutInClipboard
-  
+
   MyGeneralOperations.WriteTextFile strExportPath, strReport, True, False
-  
-'
-'  Dim pDataObj As New MSForms.DataObject
-'  pDataObj.SetText Replace(strLine, ",", vbTab)
-'  pDataObj.PutInClipboard
-'
-  
+
   pSBar.HideProgressBar
   pProg.position = 0
   Debug.Print "Done..."
   Debug.Print MyGeneralOperations.ReturnTimeElapsedFromMilliseconds(GetTickCount - lngStart)
-  
-  
+
 ClearMemory:
   Set pMxDoc = Nothing
   Set pApp = Nothing
@@ -2643,36 +2046,37 @@ ClearMemory:
   Erase lngCounts
 
 End Sub
+
 Public Sub SummarizeYearByPlotByYear()
 
   Dim lngStart As Long
   lngStart = GetTickCount
-  
+
   Dim pMxDoc As IMxDocument
   Dim pApp As IApplication
   Dim pSBar As IStatusBar
   Dim pProg As IStepProgressor
-  
+
   Set pMxDoc = ThisDocument
   Set pApp = Application
   Set pSBar = pApp.StatusBar
   Set pProg = pSBar.ProgressBar
-  
+
   Dim lngCount As Long
   Dim lngCounter As Long
-  
+
   Dim strCombinePath As String
   Dim strModifiedRoot As String
   Dim strContainerFolder As String
   Dim strExportPath As String
   Call DeclareWorkspaces(strCombinePath, strModifiedRoot, , , , strContainerFolder)
   strExportPath = MyGeneralOperations.MakeUniquedBASEName(strContainerFolder & "\Summarize_Plots_by_Year.csv")
-  
+
   Dim pWS As IFeatureWorkspace
   Dim pWSFact As IWorkspaceFactory
   Set pWSFact = New FileGDBWorkspaceFactory
   Set pWS = pWSFact.OpenFromFile(strModifiedRoot & "\Combined_by_Site.gdb", 0)
-  
+
   Dim pDensityFClass As IFeatureClass
   Dim pCoverFClass As IFeatureClass
   Dim pFCursor As IFeatureCursor
@@ -2683,7 +2087,7 @@ Public Sub SummarizeYearByPlotByYear()
   Dim lngCoverYearIndex As Long
   Dim lngCoverPlotIndex As Long
   Dim lngCoverSiteIndex As Long
-  
+
   Set pDensityFClass = pWS.OpenFeatureClass("Density_All")
   lngDensityYearIndex = pDensityFClass.FindField("Year")
   lngDensityPlotIndex = pDensityFClass.FindField("Plot")
@@ -2692,32 +2096,32 @@ Public Sub SummarizeYearByPlotByYear()
   lngCoverYearIndex = pCoverFClass.FindField("Year")
   lngCoverPlotIndex = pCoverFClass.FindField("Plot")
   lngCoverSiteIndex = pCoverFClass.FindField("Site")
-  
+
   lngCount = pDensityFClass.FeatureCount(Nothing) + pCoverFClass.FeatureCount(Nothing)
-  
+
   Dim strYear As String
   Dim strSite As String
   Dim lngQuadrat As Long
   Dim lngIndex As Long
   Dim lngIndex2 As Long
-  
+
   Dim strAllYear() As String
   Dim strAllSites() As String
   Dim lngAllQuadrats() As Long
   Dim lngAllYearIndex As Long
   Dim lngAllPlotsIndex As Long
-  
+
   Dim pDonePlots As New Collection
   Dim pDoneYear As New Collection
-  
+
   lngAllYearIndex = -1
   lngAllPlotsIndex = -1
-  
+
   pSBar.ShowProgressBar "Initial Pass...", 0, lngCount, 1, True
   pProg.position = 0
-  
+
   lngCounter = 0
-    
+
   Set pFCursor = pDensityFClass.Search(Nothing, False)
   Set pFeature = pFCursor.NextFeature
   Do Until pFeature Is Nothing
@@ -2734,7 +2138,7 @@ Public Sub SummarizeYearByPlotByYear()
       ReDim Preserve strAllYear(lngAllYearIndex)
       strAllYear(lngAllYearIndex) = strYear
     End If
-    
+
     strSite = pFeature.Value(lngDensitySiteIndex) & ": Plot " & pFeature.Value(lngDensityPlotIndex)
     If Not MyGeneralOperations.CheckCollectionForKey(pDonePlots, strSite) Then
       pDonePlots.Add True, strSite
@@ -2742,10 +2146,10 @@ Public Sub SummarizeYearByPlotByYear()
       ReDim Preserve strAllSites(lngAllPlotsIndex)
       strAllSites(lngAllPlotsIndex) = strSite
     End If
-    
+
     Set pFeature = pFCursor.NextFeature
   Loop
-    
+
   Set pFCursor = pCoverFClass.Search(Nothing, False)
   Set pFeature = pFCursor.NextFeature
   Do Until pFeature Is Nothing
@@ -2762,7 +2166,7 @@ Public Sub SummarizeYearByPlotByYear()
       ReDim Preserve strAllYear(lngAllYearIndex)
       strAllYear(lngAllYearIndex) = strYear
     End If
-    
+
     strSite = pFeature.Value(lngCoverSiteIndex) & ": Plot " & pFeature.Value(lngCoverPlotIndex)
     If Not MyGeneralOperations.CheckCollectionForKey(pDonePlots, strSite) Then
       pDonePlots.Add True, strSite
@@ -2770,33 +2174,32 @@ Public Sub SummarizeYearByPlotByYear()
       ReDim Preserve strAllSites(lngAllPlotsIndex)
       strAllSites(lngAllPlotsIndex) = strSite
     End If
-    
+
     Set pFeature = pFCursor.NextFeature
   Loop
-  
+
   QuickSort.StringsAscending strAllSites, 0, UBound(strAllSites)
   QuickSort.StringsAscending strAllYear, 0, UBound(strAllYear)
-  
+
   Dim pYearIndexes As New Collection
   Dim pSiteIndexes As New Collection
-    
+
   For lngIndex = 0 To UBound(strAllYear)
     pYearIndexes.Add lngIndex, strAllYear(lngIndex)
   Next lngIndex
   For lngIndex = 0 To UBound(strAllSites)
     pSiteIndexes.Add lngIndex, strAllSites(lngIndex)
   Next lngIndex
-  
+
   Dim lngCounts() As Long
-'  ReDim lngCounts(UBound(strAllYear), UBound(strAllSites))
   ReDim lngCounts(UBound(strAllSites), UBound(strAllYear))
-  
+
   Dim lngYearIndex As Long
   Dim lngSiteIndex As Long
-  
+
   pSBar.ShowProgressBar "Second Pass...", 0, lngCount, 1, True
   pProg.position = 0
-  
+
   Set pFCursor = pDensityFClass.Search(Nothing, False)
   Set pFeature = pFCursor.NextFeature
   Do Until pFeature Is Nothing
@@ -2808,17 +2211,15 @@ Public Sub SummarizeYearByPlotByYear()
     strYear = Trim(pFeature.Value(lngDensityYearIndex))
     If strYear = "" Then strYear = "<-- Year Name Missing -->"
     lngYearIndex = pYearIndexes.Item(strYear)
-    
-'    strSite = pFeature.Value(lngDensityPlotIndex)
+
     strSite = pFeature.Value(lngDensitySiteIndex) & ": Plot " & pFeature.Value(lngDensityPlotIndex)
     lngSiteIndex = pSiteIndexes.Item(strSite)
-    
-'    lngCounts(lngYearIndex, lngSiteIndex) = lngCounts(lngYearIndex, lngSiteIndex) + 1
+
     lngCounts(lngSiteIndex, lngYearIndex) = lngCounts(lngSiteIndex, lngYearIndex) + 1
-        
+
     Set pFeature = pFCursor.NextFeature
   Loop
-    
+
   Set pFCursor = pCoverFClass.Search(Nothing, False)
   Set pFeature = pFCursor.NextFeature
   Do Until pFeature Is Nothing
@@ -2830,49 +2231,40 @@ Public Sub SummarizeYearByPlotByYear()
     strYear = Trim(pFeature.Value(lngCoverYearIndex))
     If strYear = "" Then strYear = "<-- Year Name Missing -->"
     lngYearIndex = pYearIndexes.Item(strYear)
-    
+
     strSite = pFeature.Value(lngCoverSiteIndex) & ": Plot " & pFeature.Value(lngCoverPlotIndex)
     lngSiteIndex = pSiteIndexes.Item(strSite)
-    
-'    lngCounts(lngYearIndex, lngSiteIndex) = lngCounts(lngYearIndex, lngSiteIndex) + 1
+
     lngCounts(lngSiteIndex, lngYearIndex) = lngCounts(lngSiteIndex, lngYearIndex) + 1
-    
+
     Set pFeature = pFCursor.NextFeature
   Loop
-  
+
   Dim strLine As String
   Dim strReport As String
-  
+
   strLine = """Plot Name"","
   For lngIndex = 0 To UBound(strAllYear)
     strLine = strLine & """" & strAllYear(lngIndex) & IIf(lngIndex = UBound(strAllYear), """", """,")
   Next lngIndex
   strReport = strLine & vbCrLf
-  
+
   For lngIndex = 0 To UBound(strAllSites)
     strSite = Trim(strAllSites(lngIndex))
     strLine = """" & IIf(strSite = "", "<Null>", strSite) & ""","
     For lngIndex2 = 0 To UBound(strAllYear)
-'      strLine = strLine & Format(lngCounts(lngIndex, lngIndex2), "0") & IIf(lngIndex2 = UBound(strAllSites), "", ",")
       strLine = strLine & IIf(lngCounts(lngIndex, lngIndex2) = 0, "", "X") & IIf(lngIndex2 = UBound(strAllSites), "", ",")
     Next lngIndex2
     strReport = strReport & strLine & vbCrLf
   Next lngIndex
-  
-  
-'  Dim pDataObj As New MSForms.DataObject
-'  pDataObj.SetText Replace(strReport, ",", vbTab)
-'  pDataObj.PutInClipboard
-  
+
   MyGeneralOperations.WriteTextFile strExportPath, strReport, True, False
-  
-  
+
   pSBar.HideProgressBar
   pProg.position = 0
   Debug.Print "Done..."
   Debug.Print MyGeneralOperations.ReturnTimeElapsedFromMilliseconds(GetTickCount - lngStart)
-  
-  
+
 ClearMemory:
   Set pMxDoc = Nothing
   Set pApp = Nothing
@@ -2893,43 +2285,41 @@ ClearMemory:
   Set pSiteIndexes = Nothing
   Erase lngCounts
 
-
-
 End Sub
 
 Public Sub SummarizeYearByCorrectQuadratByYear()
 
   Dim lngStart As Long
   lngStart = GetTickCount
-  
+
   Dim pMxDoc As IMxDocument
   Dim pApp As IApplication
   Dim pSBar As IStatusBar
   Dim pProg As IStepProgressor
-  
+
   Set pMxDoc = ThisDocument
   Set pApp = Application
   Set pSBar = pApp.StatusBar
   Set pProg = pSBar.ProgressBar
-  
+
   Dim pCommentColl As Collection
   Set pCommentColl = MakeCollectionOfComments
-  
+
   Dim lngCount As Long
   Dim lngCounter As Long
-  
+
   Dim strCombinePath As String
   Dim strModifiedRoot As String
   Dim strContainerFolder As String
   Dim strExportPath As String
   Call DeclareWorkspaces(strCombinePath, strModifiedRoot, , , , strContainerFolder)
   strExportPath = MyGeneralOperations.MakeUniquedBASEName(strContainerFolder & "\Summarize_Quadrats_by_Year.csv")
-  
+
   Dim pWS As IFeatureWorkspace
   Dim pWSFact As IWorkspaceFactory
   Set pWSFact = New FileGDBWorkspaceFactory
   Set pWS = pWSFact.OpenFromFile(strModifiedRoot & "\Combined_by_Site.gdb", 0)
-  
+
   Dim pDensityFClass As IFeatureClass
   Dim pCoverFClass As IFeatureClass
   Dim pFCursor As IFeatureCursor
@@ -2940,7 +2330,7 @@ Public Sub SummarizeYearByCorrectQuadratByYear()
   Dim lngCoverYearIndex As Long
   Dim lngCoverPlotIndex As Long
   Dim lngCoverSiteIndex As Long
-  
+
   Set pDensityFClass = pWS.OpenFeatureClass("Density_All")
   lngDensityYearIndex = pDensityFClass.FindField("Year")
   lngDensityPlotIndex = pDensityFClass.FindField("Plot")
@@ -2949,36 +2339,35 @@ Public Sub SummarizeYearByCorrectQuadratByYear()
   lngCoverYearIndex = pCoverFClass.FindField("Year")
   lngCoverPlotIndex = pCoverFClass.FindField("Plot")
   lngCoverSiteIndex = pCoverFClass.FindField("Site")
-  
+
   lngCount = pDensityFClass.FeatureCount(Nothing) + pCoverFClass.FeatureCount(Nothing)
-  
+
   Dim strYear As String
   Dim strSite As String
   Dim lngQuadrat As Long
   Dim lngIndex As Long
   Dim lngIndex2 As Long
-  
+
   Dim strAllYear() As String
   Dim strAllSites() As String
   Dim lngAllQuadrats() As Long
   Dim lngAllYearIndex As Long
   Dim lngAllPlotsIndex As Long
-  
+
   Dim pDonePlots As New Collection
   Dim pDoneYear As New Collection
-  
+
   lngAllYearIndex = 0
-  ' MANUALLY ADD 2008
   ReDim strAllYear(lngAllYearIndex)
   strAllYear(lngAllYearIndex) = "2008"
-  
+
   lngAllPlotsIndex = -1
-  
+
   pSBar.ShowProgressBar "Initial Pass...", 0, lngCount, 1, True
   pProg.position = 0
-  
+
   lngCounter = 0
-    
+
   Set pFCursor = pDensityFClass.Search(Nothing, False)
   Set pFeature = pFCursor.NextFeature
   Do Until pFeature Is Nothing
@@ -2995,7 +2384,7 @@ Public Sub SummarizeYearByCorrectQuadratByYear()
       ReDim Preserve strAllYear(lngAllYearIndex)
       strAllYear(lngAllYearIndex) = strYear
     End If
-    
+
     strSite = pFeature.Value(lngDensitySiteIndex) & ": Quadrat " & pFeature.Value(lngDensityPlotIndex)
     If Not MyGeneralOperations.CheckCollectionForKey(pDonePlots, strSite) Then
       pDonePlots.Add True, strSite
@@ -3003,10 +2392,10 @@ Public Sub SummarizeYearByCorrectQuadratByYear()
       ReDim Preserve strAllSites(lngAllPlotsIndex)
       strAllSites(lngAllPlotsIndex) = strSite
     End If
-    
+
     Set pFeature = pFCursor.NextFeature
   Loop
-    
+
   Set pFCursor = pCoverFClass.Search(Nothing, False)
   Set pFeature = pFCursor.NextFeature
   Do Until pFeature Is Nothing
@@ -3023,7 +2412,7 @@ Public Sub SummarizeYearByCorrectQuadratByYear()
       ReDim Preserve strAllYear(lngAllYearIndex)
       strAllYear(lngAllYearIndex) = strYear
     End If
-    
+
     strSite = pFeature.Value(lngCoverSiteIndex) & ": Quadrat " & pFeature.Value(lngCoverPlotIndex)
     If Not MyGeneralOperations.CheckCollectionForKey(pDonePlots, strSite) Then
       pDonePlots.Add True, strSite
@@ -3031,33 +2420,32 @@ Public Sub SummarizeYearByCorrectQuadratByYear()
       ReDim Preserve strAllSites(lngAllPlotsIndex)
       strAllSites(lngAllPlotsIndex) = strSite
     End If
-    
+
     Set pFeature = pFCursor.NextFeature
   Loop
-  
+
   QuickSort.StringsAscending strAllSites, 0, UBound(strAllSites)
   QuickSort.StringsAscending strAllYear, 0, UBound(strAllYear)
-  
+
   Dim pYearIndexes As New Collection
   Dim pSiteIndexes As New Collection
-    
+
   For lngIndex = 0 To UBound(strAllYear)
     pYearIndexes.Add lngIndex, strAllYear(lngIndex)
   Next lngIndex
   For lngIndex = 0 To UBound(strAllSites)
     pSiteIndexes.Add lngIndex, strAllSites(lngIndex)
   Next lngIndex
-  
+
   Dim lngCounts() As Long
-'  ReDim lngCounts(UBound(strAllYear), UBound(strAllSites))
   ReDim lngCounts(UBound(strAllSites), UBound(strAllYear))
-  
+
   Dim lngYearIndex As Long
   Dim lngSiteIndex As Long
-  
+
   pSBar.ShowProgressBar "Second Pass...", 0, lngCount, 1, True
   pProg.position = 0
-  
+
   Set pFCursor = pDensityFClass.Search(Nothing, False)
   Set pFeature = pFCursor.NextFeature
   Do Until pFeature Is Nothing
@@ -3069,17 +2457,15 @@ Public Sub SummarizeYearByCorrectQuadratByYear()
     strYear = Trim(pFeature.Value(lngDensityYearIndex))
     If strYear = "" Then strYear = "<-- Year Name Missing -->"
     lngYearIndex = pYearIndexes.Item(strYear)
-    
-'    strSite = pFeature.Value(lngDensityPlotIndex)
+
     strSite = pFeature.Value(lngDensitySiteIndex) & ": Quadrat " & pFeature.Value(lngDensityPlotIndex)
     lngSiteIndex = pSiteIndexes.Item(strSite)
-    
-'    lngCounts(lngYearIndex, lngSiteIndex) = lngCounts(lngYearIndex, lngSiteIndex) + 1
+
     lngCounts(lngSiteIndex, lngYearIndex) = lngCounts(lngSiteIndex, lngYearIndex) + 1
-        
+
     Set pFeature = pFCursor.NextFeature
   Loop
-    
+
   Set pFCursor = pCoverFClass.Search(Nothing, False)
   Set pFeature = pFCursor.NextFeature
   Do Until pFeature Is Nothing
@@ -3091,25 +2477,24 @@ Public Sub SummarizeYearByCorrectQuadratByYear()
     strYear = Trim(pFeature.Value(lngCoverYearIndex))
     If strYear = "" Then strYear = "<-- Year Name Missing -->"
     lngYearIndex = pYearIndexes.Item(strYear)
-    
+
     strSite = pFeature.Value(lngCoverSiteIndex) & ": Quadrat " & pFeature.Value(lngCoverPlotIndex)
     lngSiteIndex = pSiteIndexes.Item(strSite)
-    
-'    lngCounts(lngYearIndex, lngSiteIndex) = lngCounts(lngYearIndex, lngSiteIndex) + 1
+
     lngCounts(lngSiteIndex, lngYearIndex) = lngCounts(lngSiteIndex, lngYearIndex) + 1
-    
+
     Set pFeature = pFCursor.NextFeature
   Loop
-  
+
   Dim strLine As String
   Dim strReport As String
-  
+
   strLine = """Quadrat"","
   For lngIndex = 0 To UBound(strAllYear)
     strLine = strLine & """" & strAllYear(lngIndex) & ""","
   Next lngIndex
   strReport = strLine & """Years_Surveyed"",""Proportion"",""Comments""" & vbCrLf
-  
+
   Dim lngYearCounter As Long
   Dim lngCountsByYear() As Long
   Dim strComment As String
@@ -3120,7 +2505,6 @@ Public Sub SummarizeYearByCorrectQuadratByYear()
     strLine = """" & IIf(strSite = "", "<Null>", strSite) & ""","
     lngYearCounter = 0
     For lngIndex2 = 0 To UBound(strAllYear)
-'      strLine = strLine & Format(lngCounts(lngIndex, lngIndex2), "0") & IIf(lngIndex2 = UBound(strAllSites), "", ",")
       strLine = strLine & IIf(lngCounts(lngIndex, lngIndex2) = 0, "", "X") & ","
       If lngCounts(lngIndex, lngIndex2) <> 0 Then
         lngYearCounter = lngYearCounter + 1
@@ -3130,7 +2514,6 @@ Public Sub SummarizeYearByCorrectQuadratByYear()
     strReport = strReport & strLine & Format(lngYearCounter, "0") & "," & _
         Format(CDbl(lngYearCounter) / (UBound(strAllYear) + 1) * 100, "0.00") & "%" & ",""" & strComment & """" & vbCrLf
   Next lngIndex
-  ' summarize columns
   strReport = strReport & "Sites_Surveyed,"
   For lngIndex = 0 To UBound(lngCountsByYear)
     strReport = strReport & Format(lngCountsByYear(lngIndex), "0") & ","
@@ -3145,22 +2528,14 @@ Public Sub SummarizeYearByCorrectQuadratByYear()
     strReport = strReport & ","
   Next lngIndex
   strReport = strReport & ",,,"
-  
-  
-  
-'  Dim pDataObj As New MSForms.DataObject
-'  pDataObj.SetText Replace(strReport, ",", vbTab)
-'  pDataObj.PutInClipboard
-  
+
   MyGeneralOperations.WriteTextFile strExportPath, strReport, True, False
-  
-  
+
   pSBar.HideProgressBar
   pProg.position = 0
   Debug.Print "Done..."
   Debug.Print MyGeneralOperations.ReturnTimeElapsedFromMilliseconds(GetTickCount - lngStart)
-  
-  
+
 ClearMemory:
   Set pMxDoc = Nothing
   Set pApp = Nothing
@@ -3180,8 +2555,6 @@ ClearMemory:
   Set pYearIndexes = Nothing
   Set pSiteIndexes = Nothing
   Erase lngCounts
-
-
 
 End Sub
 
@@ -3294,101 +2667,35 @@ Public Function MakeCollectionOfComments() As Collection
 
   Set MakeCollectionOfComments = pCommentColl
 
-'  Dim pWS As IFeatureWorkspace
-'  Dim pWSFact As IWorkspaceFactory
-'  Set pWSFact = New TextFileWorkspaceFactory
-'  Set pWS = pWSFact.OpenFromFile("D:\arcGIS_stuff\consultation\Margaret_Moore\Data_to_include_in_publication\", 0)
-'
-'  Dim pTable As ITable
-'  Set pTable = pWS.OpenTable("Source_for_Quadrats_by_Year_Comments.csv")
-'
-'  Debug.Print pTable.RowCount(Nothing)
-'  Dim pFields As IFields
-'  Dim lngIndex As Long
-'  Dim pField As iField
-'  Set pFields = pTable.Fields
-''  For lngIndex = 0 To pFields.FieldCount - 1
-''    Set pField = pFields.Field(lngIndex)
-''    Debug.Print CStr(lngIndex) & "] " & pField.Name
-''  Next lngIndex
-'
-'  Dim pCursor As ICursor
-'  Dim pRow As IRow
-'  Set pCursor = pTable.Search(Nothing, False)
-'  Set pRow = pCursor.NextRow
-'  Dim strQuadrat As String
-'  Dim strComment As String
-'
-'  Dim strReport As String
-'  strReport = "  dim pCommentColl as new collection" & vbCrLf
-'  Do Until pRow Is Nothing
-'    If Not IsNull(pRow.Value(0)) Then
-'      strQuadrat = pRow.Value(0)
-'      If strQuadrat <> "Sites_Surveyed" And strQuadrat <> "Proportion" Then
-'        If IsNull(pRow.Value(22)) Then
-'          strComment = ""
-'        Else
-'          strComment = pRow.Value(22)
-'        End If
-'        If Left(strQuadrat, 5) = "NOTE:" Then
-'          strComment = strQuadrat
-'          strQuadrat = "General"
-'        End If
-'        strReport = strReport & "  pCommentColl.Add " & """" & strComment & """, """ & strQuadrat & """" & vbCrLf
-'
-'        Debug.Print pRow.Value(0) & "..." & pRow.Value(22)
-'      End If
-'    End If
-'
-'    Set pRow = pCursor.NextRow
-'  Loop
-'
-'  Dim pDataObj As New MSForms.DataObject
-'  pDataObj.SetText strReport
-'  pDataObj.PutInClipboard
-'  Set pDataObj = Nothing
-'
-'  Debug.Print strReport
 End Function
-
-
-Public Sub TestReturnColYearsSurveyedByQuadrat()
-  Dim lngYear1 As Long
-  Dim lngYear2 As Long
-  Dim pReturn As Collection
-  
-  lngYear1 = 2002
-  lngYear2 = 2020
-  Set pReturn = ReturnCollectionOfYearsSurveyedByQuadrat(lngYear1, lngYear2)
-End Sub
 
 Public Function ReturnCollectionOfYearsSurveyedByQuadrat(lngYear1 As Long, lngYear2 As Long) As Collection
 
   Dim lngStart As Long
   lngStart = GetTickCount
-  
+
   Dim pMxDoc As IMxDocument
   Dim pApp As IApplication
   Dim pSBar As IStatusBar
   Dim pProg As IStepProgressor
-  
+
   Set pMxDoc = ThisDocument
   Set pApp = Application
   Set pSBar = pApp.StatusBar
   Set pProg = pSBar.ProgressBar
-  
+
   Dim lngCount As Long
   Dim lngCounter As Long
-  
+
   Dim strCombinePath As String
   Dim strModifiedRoot As String
   Dim strContainerFolder As String
   Dim strExportPath As String
   Call DeclareWorkspaces(strCombinePath, strModifiedRoot, , , , strContainerFolder)
-  
+
   Dim pFiles As esriSystem.IStringArray
   Set pFiles = MyGeneralOperations.ReturnFilesFromNestedFolders2(strCombinePath, ".shp")
-  
+
   strExportPath = MyGeneralOperations.MakeUniquedBASEName(strContainerFolder & "\Summarize_Plots_by_Year.csv")
   Dim lngIndex As Long
   Dim strPath As String
@@ -3396,7 +2703,7 @@ Public Function ReturnCollectionOfYearsSurveyedByQuadrat(lngYear1 As Long, lngYe
   Dim strYear As String
   Dim strQuadrat As String
   Dim strSplit() As String
-  
+
   Dim strAllYear() As String
   Dim strAllSites() As String
   Dim lngAllQuadrats() As Long
@@ -3404,38 +2711,38 @@ Public Function ReturnCollectionOfYearsSurveyedByQuadrat(lngYear1 As Long, lngYe
   Dim lngAllPlotsIndex As Long
   Dim strPairArray() As String
   Dim lngPairArrayIndex As Long
-  
+
   Dim pDonePairs As New Collection
   Dim pDonePlots As New Collection
   Dim pDoneYear As New Collection
-  
+
   lngAllYearIndex = -1
   lngAllPlotsIndex = -1
   lngPairArrayIndex = -1
-  
+
   lngCount = pFiles.Count
   lngCounter = 0
-  
+
   pSBar.ShowProgressBar "Initial Pass...", 0, lngCount, 1, True
   pProg.position = 0
-  
+
   For lngIndex = 0 To pFiles.Count - 1
     pProg.Step
     lngCounter = lngCounter + 1
     If lngCounter Mod 100 = 0 Then
       DoEvents
     End If
-    
+
     strPath = aml_func_mod.ReturnFilename2(pFiles.Element(lngIndex))
     strSplit = Split(strPath, "_")
     strQuadrat = strSplit(0)
     strYear = strSplit(1)
-    
+
     If strYear = "" Then
       MsgBox "No Year!"
       strYear = "<-- Year Name Missing -->"
     End If
-    
+
     If Not MyGeneralOperations.CheckCollectionForKey(pDonePairs, strQuadrat & "_" & strYear) Then
       pDonePairs.Add True, strQuadrat & "_" & strYear
       lngPairArrayIndex = lngPairArrayIndex + 1
@@ -3443,15 +2750,14 @@ Public Function ReturnCollectionOfYearsSurveyedByQuadrat(lngYear1 As Long, lngYe
       strPairArray(0, lngPairArrayIndex) = strQuadrat
       strPairArray(1, lngPairArrayIndex) = strYear
     End If
-    
-    
+
     If Not MyGeneralOperations.CheckCollectionForKey(pDoneYear, strYear) Then
       pDoneYear.Add True, strYear
       lngAllYearIndex = lngAllYearIndex + 1
       ReDim Preserve strAllYear(lngAllYearIndex)
       strAllYear(lngAllYearIndex) = strYear
     End If
-    
+
     If Not MyGeneralOperations.CheckCollectionForKey(pDonePlots, strQuadrat) Then
       pDonePlots.Add True, strQuadrat
       lngAllPlotsIndex = lngAllPlotsIndex + 1
@@ -3459,45 +2765,45 @@ Public Function ReturnCollectionOfYearsSurveyedByQuadrat(lngYear1 As Long, lngYe
       strAllSites(lngAllPlotsIndex) = strQuadrat
     End If
   Next lngIndex
-    
+
   QuickSort.StringsAscending strAllSites, 0, UBound(strAllSites)
   QuickSort.StringsAscending strAllYear, 0, UBound(strAllYear)
-  
+
   Dim pYearIndexes As New Collection
   Dim pQuadratIndexes As New Collection
-    
+
   For lngIndex = 0 To UBound(strAllYear)
     pYearIndexes.Add lngIndex, strAllYear(lngIndex)
   Next lngIndex
   For lngIndex = 0 To UBound(strAllSites)
     pQuadratIndexes.Add lngIndex, strAllSites(lngIndex)
   Next lngIndex
-  
+
   Dim lngYearIndex As Long
   Dim lngQuadratIndex As Long
   Dim lngIndex2 As Long
-  
+
   pSBar.ShowProgressBar "Second Pass...", 0, lngPairArrayIndex, 1, True
   pProg.position = 0
-  
+
   Dim pReturnColl As Collection
   Dim pSubColl As Collection
-  
+
   Set pReturnColl = New Collection
-  
+
   For lngIndex = 0 To lngPairArrayIndex
     strQuadrat = strPairArray(0, lngIndex)
     strYear = strPairArray(1, lngIndex)
-    
+
     pProg.Step
     lngCounter = lngCounter + 1
     If lngCounter Mod 100 = 0 Then
       DoEvents
     End If
-    
+
     lngYearIndex = pYearIndexes.Item(strYear)
     lngQuadratIndex = pQuadratIndexes.Item(strQuadrat)
-    
+
     If MyGeneralOperations.CheckCollectionForKey(pReturnColl, strQuadrat) Then
       Set pSubColl = pReturnColl.Item(strQuadrat)
       pReturnColl.Remove strQuadrat
@@ -3507,7 +2813,7 @@ Public Function ReturnCollectionOfYearsSurveyedByQuadrat(lngYear1 As Long, lngYe
         pSubColl.Add False, Format(lngIndex2, "0")
       Next lngIndex2
     End If
-    
+
     If MyGeneralOperations.CheckCollectionForKey(pSubColl, strYear) Then
       If pSubColl.Item(strYear) = False Then
         pSubColl.Remove strYear
@@ -3515,272 +2821,16 @@ Public Function ReturnCollectionOfYearsSurveyedByQuadrat(lngYear1 As Long, lngYe
       End If
     End If
     pReturnColl.Add pSubColl, strQuadrat
-    
+
   Next lngIndex
-  
-  
-  
-  
-'
-'
-'
-'
-'
-'
-'
-'
-'
-'
-'
-'
-'  Dim pWS As IFeatureWorkspace
-'  Dim pWSFact As IWorkspaceFactory
-'  Set pWSFact = New FileGDBWorkspaceFactory
-'  Set pWS = pWSFact.OpenFromFile(strModifiedRoot & "\Combined_by_Site.gdb", 0)
-'
-'  Dim pDensityFClass As IFeatureClass
-'  Dim pCoverFClass As IFeatureClass
-'  Dim pFCursor As IFeatureCursor
-'  Dim pFeature As IFeature
-'  Dim lngDensityYearIndex As Long
-'  Dim lngDensityPlotIndex As Long
-'  Dim lngDensityQuadratIndex As Long
-'  Dim lngCoverYearIndex As Long
-'  Dim lngCoverPlotIndex As Long
-'  Dim lngCoverQuadratIndex As Long
-'
-'  Set pDensityFClass = pWS.OpenFeatureClass("Density_All")
-'  lngDensityYearIndex = pDensityFClass.FindField("Year")
-'  lngDensityPlotIndex = pDensityFClass.FindField("Plot")
-'  lngDensityQuadratIndex = pDensityFClass.FindField("Quadrat")
-'  Set pCoverFClass = pWS.OpenFeatureClass("Cover_All")
-'  lngCoverYearIndex = pCoverFClass.FindField("Year")
-'  lngCoverPlotIndex = pCoverFClass.FindField("Plot")
-'  lngCoverQuadratIndex = pCoverFClass.FindField("Quadrat")
-'
-'  lngCount = pDensityFClass.FeatureCount(Nothing) + pCoverFClass.FeatureCount(Nothing)
-'
-'  Dim strYear As String
-'  Dim strQuadrat As String
-'  Dim lngQuadrat As Long
-'  Dim lngIndex As Long
-'  Dim lngIndex2 As Long
-'
-'  Dim strAllYear() As String
-'  Dim strAllSites() As String
-'  Dim lngAllQuadrats() As Long
-'  Dim lngAllYearIndex As Long
-'  Dim lngAllPlotsIndex As Long
-'
-'  Dim pDonePlots As New Collection
-'  Dim pDoneYear As New Collection
-'
-'  lngAllYearIndex = -1
-'  lngAllPlotsIndex = -1
-'
-'  pSBar.ShowProgressBar "Initial Pass...", 0, lngCount, 1, True
-'  pProg.position = 0
-'
-'  lngCounter = 0
-'
-'  Set pFCursor = pDensityFClass.Search(Nothing, False)
-'  Set pFeature = pFCursor.NextFeature
-'  Do Until pFeature Is Nothing
-'    pProg.Step
-'    lngCounter = lngCounter + 1
-'    If lngCounter Mod 100 = 0 Then
-'      DoEvents
-'    End If
-'    strYear = Trim(pFeature.Value(lngDensityYearIndex))
-'    If strYear = "" Then strYear = "<-- Year Name Missing -->"
-'    If Not MyGeneralOperations.CheckCollectionForKey(pDoneYear, strYear) Then
-'      pDoneYear.Add True, strYear
-'      lngAllYearIndex = lngAllYearIndex + 1
-'      ReDim Preserve strAllYear(lngAllYearIndex)
-'      strAllYear(lngAllYearIndex) = strYear
-'    End If
-'
-'    strQuadrat = pFeature.Value(lngDensityQuadratIndex) ' & ": Plot " & pFeature.Value(lngDensityPlotIndex)
-'    If Not MyGeneralOperations.CheckCollectionForKey(pDonePlots, strQuadrat) Then
-'      pDonePlots.Add True, strQuadrat
-'      lngAllPlotsIndex = lngAllPlotsIndex + 1
-'      ReDim Preserve strAllSites(lngAllPlotsIndex)
-'      strAllSites(lngAllPlotsIndex) = strQuadrat
-'    End If
-'
-'    Set pFeature = pFCursor.NextFeature
-'  Loop
-'
-'  Set pFCursor = pCoverFClass.Search(Nothing, False)
-'  Set pFeature = pFCursor.NextFeature
-'  Do Until pFeature Is Nothing
-'    pProg.Step
-'    lngCounter = lngCounter + 1
-'    If lngCounter Mod 100 = 0 Then
-'      DoEvents
-'    End If
-'    strYear = Trim(pFeature.Value(lngCoverYearIndex))
-'    If strYear = "" Then strYear = "<-- Year Name Missing -->"
-'    If Not MyGeneralOperations.CheckCollectionForKey(pDoneYear, strYear) Then
-'      pDoneYear.Add True, strYear
-'      lngAllYearIndex = lngAllYearIndex + 1
-'      ReDim Preserve strAllYear(lngAllYearIndex)
-'      strAllYear(lngAllYearIndex) = strYear
-'    End If
-'
-'    strQuadrat = pFeature.Value(lngCoverQuadratIndex) ' & ": Plot " & pFeature.Value(lngCoverPlotIndex)
-'    If Not MyGeneralOperations.CheckCollectionForKey(pDonePlots, strQuadrat) Then
-'      pDonePlots.Add True, strQuadrat
-'      lngAllPlotsIndex = lngAllPlotsIndex + 1
-'      ReDim Preserve strAllSites(lngAllPlotsIndex)
-'      strAllSites(lngAllPlotsIndex) = strQuadrat
-'    End If
-'
-'    Set pFeature = pFCursor.NextFeature
-'  Loop
-'
-'  QuickSort.StringsAscending strAllSites, 0, UBound(strAllSites)
-'  QuickSort.StringsAscending strAllYear, 0, UBound(strAllYear)
-'
-'  Dim pYearIndexes As New Collection
-'  Dim pQuadratIndexes As New Collection
-'
-'  For lngIndex = 0 To UBound(strAllYear)
-'    pYearIndexes.Add lngIndex, strAllYear(lngIndex)
-'  Next lngIndex
-'  For lngIndex = 0 To UBound(strAllSites)
-'    pQuadratIndexes.Add lngIndex, strAllSites(lngIndex)
-'  Next lngIndex
-'
-'  Dim lngCounts() As Long
-''  ReDim lngCounts(UBound(strAllYear), UBound(strAllSites))
-'  ReDim lngCounts(UBound(strAllSites), UBound(strAllYear))
-'
-'  Dim lngYearIndex As Long
-'  Dim lngQuadratIndex As Long
-'
-'  pSBar.ShowProgressBar "Second Pass...", 0, lngCount, 1, True
-'  pProg.position = 0
-'
-'  Dim pReturnColl As Collection
-'  Dim pSubColl As Collection
-'
-'  Set pReturnColl = New Collection
-'
-'  Set pFCursor = pDensityFClass.Search(Nothing, False)
-'  Set pFeature = pFCursor.NextFeature
-'  Do Until pFeature Is Nothing
-'    pProg.Step
-'    lngCounter = lngCounter + 1
-'    If lngCounter Mod 100 = 0 Then
-'      DoEvents
-'    End If
-'    strYear = Trim(pFeature.Value(lngDensityYearIndex))
-'    If strYear = "" Then strYear = "<-- Year Name Missing -->"
-'    lngYearIndex = pYearIndexes.Item(strYear)
-'
-''    strQuadrat = pFeature.Value(lngDensityPlotIndex)
-'    strQuadrat = pFeature.Value(lngDensityQuadratIndex) ' & ": Plot " & pFeature.Value(lngDensityPlotIndex)
-'    lngQuadratIndex = pQuadratIndexes.Item(strQuadrat)
-'
-'    If MyGeneralOperations.CheckCollectionForKey(pReturnColl, strQuadrat) Then
-'      Set pSubColl = pReturnColl.Item(strQuadrat)
-'      pReturnColl.Remove strQuadrat
-'    Else
-'      Set pSubColl = New Collection
-'      For lngIndex = lngYear1 To lngYear2
-'        pSubColl.Add False, Format(lngIndex, "0")
-'      Next lngIndex
-'    End If
-'
-'    If MyGeneralOperations.CheckCollectionForKey(pSubColl, strYear) Then
-'      If pSubColl.Item(strYear) = False Then
-'        pSubColl.Remove strYear
-'        pSubColl.Add True, strYear
-'      End If
-'    End If
-'    pReturnColl.Add pSubColl, strQuadrat
-'
-''    lngCounts(lngYearIndex, lngQuadratIndex) = lngCounts(lngYearIndex, lngQuadratIndex) + 1
-''    lngCounts(lngQuadratIndex, lngYearIndex) = lngCounts(lngQuadratIndex, lngYearIndex) + 1
-'
-'    Set pFeature = pFCursor.NextFeature
-'  Loop
-'
-'  Set pFCursor = pCoverFClass.Search(Nothing, False)
-'  Set pFeature = pFCursor.NextFeature
-'  Do Until pFeature Is Nothing
-'    pProg.Step
-'    lngCounter = lngCounter + 1
-'    If lngCounter Mod 1000 = 0 Then
-'      DoEvents
-'    End If
-'    strYear = Trim(pFeature.Value(lngCoverYearIndex))
-'    If strYear = "" Then strYear = "<-- Year Name Missing -->"
-'    lngYearIndex = pYearIndexes.Item(strYear)
-'
-'    strQuadrat = pFeature.Value(lngCoverQuadratIndex) ' & ": Plot " & pFeature.Value(lngCoverPlotIndex)
-'    lngQuadratIndex = pQuadratIndexes.Item(strQuadrat)
-'
-'
-'    If MyGeneralOperations.CheckCollectionForKey(pReturnColl, strQuadrat) Then
-'      Set pSubColl = pReturnColl.Item(strQuadrat)
-'      pReturnColl.Remove strQuadrat
-'    Else
-'      Set pSubColl = New Collection
-'      For lngIndex = lngYear1 To lngYear2
-'        pSubColl.Add False, Format(lngIndex, "0")
-'      Next lngIndex
-'    End If
-'
-'    If MyGeneralOperations.CheckCollectionForKey(pSubColl, strYear) Then
-'      If pSubColl.Item(strYear) = False Then
-'        pSubColl.Remove strYear
-'        pSubColl.Add True, strYear
-'      End If
-'    End If
-'    pReturnColl.Add pSubColl, strQuadrat
-'
-''    lngCounts(lngYearIndex, lngQuadratIndex) = lngCounts(lngYearIndex, lngQuadratIndex) + 1
-''    lngCounts(lngQuadratIndex, lngYearIndex) = lngCounts(lngQuadratIndex, lngYearIndex) + 1
-'
-'    Set pFeature = pFCursor.NextFeature
-'  Loop
-  
-'  Dim strLine As String
-'  Dim strReport As String
-'
-'  strLine = """Plot Name"","
-'  For lngIndex = 0 To UBound(strAllYear)
-'    strLine = strLine & """" & strAllYear(lngIndex) & IIf(lngIndex = UBound(strAllYear), """", """,")
-'  Next lngIndex
-'  strReport = strLine & vbCrLf
-'
-'  For lngIndex = 0 To UBound(strAllSites)
-'    strQuadrat = Trim(strAllSites(lngIndex))
-'    strLine = """" & IIf(strQuadrat = "", "<Null>", strQuadrat) & ""","
-'    For lngIndex2 = 0 To UBound(strAllYear)
-''      strLine = strLine & Format(lngCounts(lngIndex, lngIndex2), "0") & IIf(lngIndex2 = UBound(strAllSites), "", ",")
-'      strLine = strLine & IIf(lngCounts(lngIndex, lngIndex2) = 0, "", "X") & IIf(lngIndex2 = UBound(strAllSites), "", ",")
-'    Next lngIndex2
-'    strReport = strReport & strLine & vbCrLf
-'  Next lngIndex
-'
-'
-''  Dim pDataObj As New MSForms.DataObject
-''  pDataObj.SetText Replace(strReport, ",", vbTab)
-''  pDataObj.PutInClipboard
-'
-'  MyGeneralOperations.WriteTextFile strExportPath, strReport, True, False
-  
+
   Set ReturnCollectionOfYearsSurveyedByQuadrat = pReturnColl
-  
+
   pSBar.HideProgressBar
   pProg.position = 0
   Debug.Print "Done..."
   Debug.Print MyGeneralOperations.ReturnTimeElapsedFromMilliseconds(GetTickCount - lngStart)
-  
-  
+
 ClearMemory:
   Set pMxDoc = Nothing
   Set pApp = Nothing
@@ -3800,14 +2850,6 @@ ClearMemory:
   Set pReturnColl = Nothing
   Set pSubColl = Nothing
 
-
-
-
-
-
 End Function
-
-
-
 
 
