@@ -1,6 +1,7 @@
 # Mapped_Chart_Quadrats_VBA_Code
-This repository contains VBA and ArcObjects code used to analyze plant distributions in digitized quadrats near Flagstaff Arizona, over the years 2002 - 2024.
-This code was used to produce the data presented in the Data Paper "Cover and density of southwestern ponderosa pine understory plants in permanent chart quadrats (2002-2024)" (Moore et al. In Review).
+This repository contains VBA and ArcObjects code used to analyze plant distributions in digitized quadrats near Flagstaff Arizona, over the years 2002 - 2024.  This code was used to produce the data presented in the Data Paper "Cover and density of southwestern ponderosa pine understory plants in permanent chart quadrats (2002-2024)" (Moore et al. 2025).
+
+There are 264 VBA functions used in this project, distributed over 13 modules and comprising 25,655 lines of code.  The primary analytical master function is "RunAsBatch" in the module "H_WB_Analysis".  This function runs several other functions that do the various steps of the analysis. In particular:
 
 There are 262 VBA functions used in this project, distributed over 13 modules and comprising 25,566 lines of code.  The primary analytical master function is "RunAsBatch" in the module "H_WB_Analysis".  This function runs several other functions that do the various steps of the analysis. In particular:
   1) The function "OrganizeData" in module "H_WB_Analysis" assembles all original datasets into a single workspace with a common naming convention, and adds verbatim fields to keep track of edits made to data.
@@ -18,6 +19,8 @@ There are 262 VBA functions used in this project, distributed over 13 modules an
   13) The function "ExportSubsetsOfSpeciesShapefiles" in module "Margaret_Functions_3" extracts each species individually from the full dataset, and saves them in a series of nested folders suitable for Integral Projection Model functions in R.
   14) The function "CreateFinalTables" in module "H_WB_Analysis" produces the final summary tables intended for distribution with the data, including a list of plant species observed, a summary of the basal area per species by quadrat and year, summary data describing all quadrats and overstory plots, and tabular versions of the global cover and density feature classes.
 
-The primary map export function is "ExportImages" in the module "Quadrat_Map_Module", and is run separately from the 14 functions run in the batch file above. This map-making function creates common plant species symbology that can be applied to all 1,877 maps, and exports individual maps for each quadrat and for each year.  This function is best run from an ArcMap document with no data in it, which is why it is run separately from the other functions.
+The primary map export function is "ExportImages" in the module "Margaret", and is run separately from the 14 functions run in the batch file above. This map-making function creates common plant species symbology that can be applied to all 1,877 maps, and exports individual maps for each quadrat and for each year. This function is best run from an ArcMap document with no data in it, which is why it is run separately from the other functions.  Note: These functions are written in ArcObjects and VBA, and therefore can only be run in ArcMap.  ArcGIS Pro cannot run them.
 
-Moore, M. M., J. S. Jenness, D. C. Laughlin, R. T. Strahan, J. D. Bakker, H. E. Dowling, and J. D. Springer. In Review. Cover and density of southwestern ponderosa pine understory plants in permanent chart quadrats (2002-2024). Ecology. Data Paper.
+Moore, M. M., J. S. Jenness, D. C. Laughlin, R. T. Strahan, J. D. Bakker, H. E. Dowling, and J. D. Springer. 2022. Cover and density of southwestern ponderosa pine understory plants in permanent chart quadrats (2002-2020). Ecology 103(5): e3661. https://doi.org/10.1002/ ecy.3661
+
+Moore, M. M., Jenness, J. S, Laughlin, D. C., Strahan, R. T., Bakker, J. D., Dowling, H. E., and Springer, J. D. 2025. Cover and density of southwestern ponderosa pine understory plants in permanent chart quadrats (2002-2020+). Fort Collins, CO: Forest Service Research Data Archive. Updated February 2025.
