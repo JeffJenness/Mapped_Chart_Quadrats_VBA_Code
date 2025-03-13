@@ -2313,7 +2313,7 @@ Public Sub SummarizeYearByCorrectQuadratByYear()
   Dim strContainerFolder As String
   Dim strExportPath As String
   Call DeclareWorkspaces(strCombinePath, strModifiedRoot, , , , strContainerFolder)
-  strExportPath = MyGeneralOperations.MakeUniquedBASEName(strContainerFolder & "\Summarize_Quadrats_by_Year.csv")
+  strExportPath = MyGeneralOperations.MakeUniquedBASEName(strContainerFolder & "\Summarize_Quadrats_by_Year2.csv")
 
   Dim pWS As IFeatureWorkspace
   Dim pWSFact As IWorkspaceFactory
@@ -2463,6 +2463,11 @@ Public Sub SummarizeYearByCorrectQuadratByYear()
 
     lngCounts(lngSiteIndex, lngYearIndex) = lngCounts(lngSiteIndex, lngYearIndex) + 1
 
+    If (strSite = "Ft Valley - COC-S2B: Quadrat 22241" And strYear = "2023") Or _
+       (strSite = "Wild Bill - Wild Bill Panel: Quadrat 114" And strYear = "2023") Then
+      DoEvents
+    End If
+
     Set pFeature = pFCursor.NextFeature
   Loop
 
@@ -2482,6 +2487,11 @@ Public Sub SummarizeYearByCorrectQuadratByYear()
     lngSiteIndex = pSiteIndexes.Item(strSite)
 
     lngCounts(lngSiteIndex, lngYearIndex) = lngCounts(lngSiteIndex, lngYearIndex) + 1
+
+    If (strSite = "Ft Valley - COC-S2B: Quadrat 22241" And strYear = "2023") Or _
+       (strSite = "Wild Bill - Wild Bill Panel: Quadrat 114" And strYear = "2023") Then
+      DoEvents
+    End If
 
     Set pFeature = pFCursor.NextFeature
   Loop

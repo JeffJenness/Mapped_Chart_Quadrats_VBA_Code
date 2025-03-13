@@ -968,10 +968,10 @@ Public Sub DeclareWorkspaces(strOrigShapefiles As String, Optional strModifiedRo
     Optional strSetFolder As String, Optional strExtractShapefileFolder As String, Optional strFinalFolder As String)
 
   Dim booUseCurrentDate As Boolean
-  booUseCurrentDate = True
+  booUseCurrentDate = False
 
   Dim strSpecifiedDate As String
-  strSpecifiedDate = "2024_12_22"
+  strSpecifiedDate = "2025_02_27"
 
   Dim strDate As String
   Dim strDateSplit() As String
@@ -1081,10 +1081,10 @@ Public Sub OrganizeData()
   strSourcePath9 = "D:\arcGIS_stuff\consultation\Margaret_Moore\New_Data_as_of_Nov_2022\Final"
 
   Dim strSourcePath10 As String
-  strSourcePath10 = "D:\arcGIS_stuff\consultation\Margaret_Moore\New_Data_as_of_March_23_2024\Final"
+  strSourcePath10 = "D:\arcGIS_stuff\consultation\Margaret_Moore\New_Data_as_of_March_23_2024\Revised"
 
   Dim strSourcePath11 As String
-  strSourcePath11 = "D:\arcGIS_stuff\consultation\Margaret_Moore\New_Data_as_of_Oct_11_2024"
+  strSourcePath11 = "D:\arcGIS_stuff\consultation\Margaret_Moore\New_Data_as_of_Nov_3_2024\Revised"
 
   lngCount = pAllPaths.Count
   lngCounter = 0
@@ -1979,6 +1979,12 @@ Public Sub OrganizeData()
         If InStr(1, strPath, "Q_WB_29025", vbTextCompare) > 0 And InStr(1, strPath, ".shp", vbTextCompare) > 0 Then
           DoEvents
         End If
+        If InStr(1, strPath, "Q_FV_22241", vbTextCompare) > 0 And InStr(1, strPath, ".shp", vbTextCompare) > 0 Then
+          DoEvents
+        End If
+        If InStr(1, strPath, "Q_WB_114_", vbTextCompare) > 0 And InStr(1, strPath, ".shp", vbTextCompare) > 0 Then
+          DoEvents
+        End If
         strExt = aml_func_mod.GetExtensionText(strPath)
         booTransfer = False
 
@@ -2459,7 +2465,7 @@ End Sub
 
 Public Sub FillNameConverters_2024(varNameLinks_2024() As Variant, p2024toOld As Collection, pOldTo2024 As Collection)
 
-  ReDim varNameLinks_2024(107)
+  ReDim varNameLinks_2024(108)
 
   varNameLinks_2024(0) = Array("Q_BF_11999_2024", "Q28")
   varNameLinks_2024(1) = Array("Q_BF_12000_2024", "Q29")
@@ -2503,7 +2509,7 @@ Public Sub FillNameConverters_2024(varNameLinks_2024() As Variant, p2024toOld As
   varNameLinks_2024(39) = Array("Q_FV_21269_2024", "Q33")
   varNameLinks_2024(40) = Array("Q_FV_22126_2024", "Q34")
   varNameLinks_2024(41) = Array("Q_FV_22156_2024", "Q35")
-  varNameLinks_2024(42) = Array("Q_FV_22241_2024_NO_Sp", "Q36")
+  varNameLinks_2024(42) = Array("Q_FV_22241_2024_No_Sp", "Q36")
   varNameLinks_2024(43) = Array("Q_FV_22244_2024", "Q37")
   varNameLinks_2024(44) = Array("Q_FV_23155_2024", "Q38")
   varNameLinks_2024(45) = Array("Q_FV_23155_2024_NO_Sp", "Q38")
@@ -2571,6 +2577,8 @@ Public Sub FillNameConverters_2024(varNameLinks_2024() As Variant, p2024toOld As
 
   varNameLinks_2024(106) = Array("Q_FP_30738_2024", "Q86") ' HASN'T BEEN MEASURED FOR SEVERAL YEARS
   varNameLinks_2024(107) = Array("Q_BS_2004_46_2024", "Q9")
+
+  varNameLinks_2024(108) = Array("Q_FV_22244_2024_No_Sp", "Q37")
 
   Dim lngIndex As Long
   Dim varSubArray() As Variant
@@ -4490,7 +4498,7 @@ Public Sub AddEmptyFeaturesAndFeatureClassesToCleaned()
   Call MyGeneralOperations.ReturnQuerySpecialCharacters(pNewFGDBWS, strGDBPrefix, strGDBSuffix)
 
   lngStartYear = 2002
-  lngEndYear = 2022
+  lngEndYear = 2028
   Dim pSitesSurveyedByYearColl As Collection
   Set pSitesSurveyedByYearColl = More_Margaret_Functions.ReturnCollectionOfYearsSurveyedByQuadrat(lngStartYear, lngEndYear)
   Set pQueryFilt = New QueryFilter
@@ -4894,7 +4902,7 @@ Public Sub AddEmptyFeaturesAndFeatureClasses(Optional booDoRecreated As Boolean 
   Call MyGeneralOperations.ReturnQuerySpecialCharacters(pNewFGDBWS, strGDBPrefix, strGDBSuffix)
 
   lngStartYear = 2002
-  lngEndYear = 2022
+  lngEndYear = 2028
   Dim pSitesSurveyedByYearColl As Collection
   Set pSitesSurveyedByYearColl = More_Margaret_Functions.ReturnCollectionOfYearsSurveyedByQuadrat(lngStartYear, lngEndYear)
   Set pQueryFilt = New QueryFilter
@@ -5287,48 +5295,51 @@ Public Function FillRotateColl() As Collection
     Else
       strPlot = Trim(CStr(varVal))
     End If
-    strQuadrat = pPlotToQuadratConversion.Item(strPlot)
 
-    varVal = pRow.Value(lngYearIndex)
-    If IsNull(varVal) Then
-      strYear = ""
-    Else
-      strYear = Trim(CStr(varVal))
-    End If
-    varVal = pRow.Value(lngTurnIndex)
-    If IsNull(varVal) Then
-      strTurn = ""
-    Else
-      strTurn = Trim(CStr(varVal))
-    End If
-    varVal = pRow.Value(lngNotesIndex)
-    If IsNull(varVal) Then
-      strNotes = ""
-    Else
-      strNotes = Trim(CStr(varVal))
-    End If
-    varVal = pRow.Value(lngExtraNotesIndex)
-    If IsNull(varVal) Then
-      strExtra = ""
-    Else
-      strExtra = Trim(CStr(varVal))
-    End If
+    If strPlot <> "" Then
+      strQuadrat = pPlotToQuadratConversion.Item(strPlot)
 
-    If Not MyGeneralOperations.CheckCollectionForKey(pReturn, strQuadrat) Then
-      Set pQuadratByYearColl = ReturnEmptyYearColl
-    Else
-      Set pQuadratByYearColl = pReturn.Item(strQuadrat)
-      pReturn.Remove strQuadrat
-    End If
+      varVal = pRow.Value(lngYearIndex)
+      If IsNull(varVal) Then
+        strYear = ""
+      Else
+        strYear = Trim(CStr(varVal))
+      End If
+      varVal = pRow.Value(lngTurnIndex)
+      If IsNull(varVal) Then
+        strTurn = ""
+      Else
+        strTurn = Trim(CStr(varVal))
+      End If
+      varVal = pRow.Value(lngNotesIndex)
+      If IsNull(varVal) Then
+        strNotes = ""
+      Else
+        strNotes = Trim(CStr(varVal))
+      End If
+      varVal = pRow.Value(lngExtraNotesIndex)
+      If IsNull(varVal) Then
+        strExtra = ""
+      Else
+        strExtra = Trim(CStr(varVal))
+      End If
 
-    If strYear <> "" And strTurn <> "" And strTurn <> "0" Then ' ONLY WORRY ABOUT CASES WHERE ROTATION IS DESIGNATED...
-      varElement = Array(strSite, strPlot, strYear, strTurn, strNotes, strExtra)
-      pQuadratByYearColl.Remove strYear
-      pQuadratByYearColl.Add varElement, strYear
-      Debug.Print "Plot '" & strPlot & "' [Quadrat = '" & strQuadrat & "'], " & strYear & ": Rotate " & strTurn
-    End If
+      If Not MyGeneralOperations.CheckCollectionForKey(pReturn, strQuadrat) Then
+        Set pQuadratByYearColl = ReturnEmptyYearColl
+      Else
+        Set pQuadratByYearColl = pReturn.Item(strQuadrat)
+        pReturn.Remove strQuadrat
+      End If
 
-    pReturn.Add pQuadratByYearColl, strQuadrat
+      If strYear <> "" And strTurn <> "" And strTurn <> "0" Then ' ONLY WORRY ABOUT CASES WHERE ROTATION IS DESIGNATED...
+        varElement = Array(strSite, strPlot, strYear, strTurn, strNotes, strExtra)
+        pQuadratByYearColl.Remove strYear
+        pQuadratByYearColl.Add varElement, strYear
+        Debug.Print "Plot '" & strPlot & "' [Quadrat = '" & strQuadrat & "'], " & strYear & ": Rotate " & strTurn
+      End If
+
+      pReturn.Add pQuadratByYearColl, strQuadrat
+    End If
     Set pRow = pCursor.NextRow
   Loop
 
@@ -7578,9 +7589,9 @@ Public Function CreateVarSpecialConversions(varQueryConversions() As Variant) As
   varSpecialConversions(0, lngMaxIndex) = "Q4"
   varSpecialConversions(1, lngMaxIndex) = -999
   varSpecialConversions(2, lngMaxIndex) = "Pascopyrum smithii"
-  varSpecialConversions(3, lngMaxIndex) = "Elymus trachycaulus"
+  varSpecialConversions(3, lngMaxIndex) = "Thinopyrum intermidium"
   varSpecialConversions(4, lngMaxIndex) = Array("", "")
-  varSpecialConversions(5, lngMaxIndex) = "Email Margaret July 25, 2018"
+  varSpecialConversions(5, lngMaxIndex) = "Changed Feb. 24, 2025 from email message from Margaret today"
   varSpecialConversions(6, lngMaxIndex) = Array("", "")
 
   lngMaxIndex = UBound(varSpecialConversions, 2) + 1
@@ -9230,6 +9241,9 @@ Public Sub FillCollections(pCoverCollection As Collection, pDensityCollection As
       If Not IsNull(varVal) Then strShouldChange = Trim(CStr(varVal))
 
       If strIncorrect = "Drymaria leptophyllum" Then
+        DoEvents
+      End If
+      If strIncorrect = "Pascopyrum smithii" Then
         DoEvents
       End If
 

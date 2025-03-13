@@ -9,7 +9,7 @@ Public Sub DeclareWorkspaces(strOrigShapefiles As String, Optional strModifiedRo
   booUseCurrentDate = False
 
   Dim strSpecifiedDate As String
-  strSpecifiedDate = "2024_12_23"
+  strSpecifiedDate = "2025_02_27"
 
   Dim strDate As String
   Dim strDateSplit() As String
@@ -43,9 +43,18 @@ Public Sub ExportImages()
   lngStart = GetTickCount
   Dim pEnv As IEnvelope
 
+  Dim booOnlyDoSpecificQuadrats As Boolean
+  Dim varSpecificQuadrats() As Variant
+  Dim booExportThisOne As Boolean
+
+  booOnlyDoSpecificQuadrats = False
+  varSpecificQuadrats = Array("44", "43", "75")
+
   Dim strExportBase As String
   Dim strModifiedRoot As String
   Dim strOrig As String
+
+  Call ClearAnyInitialData
 
   Call DeclareWorkspaces(strOrig, , , strExportBase, strModifiedRoot)
   If Right(strExportBase, 1) <> "\" Then strExportBase = strExportBase & "\"
@@ -264,6 +273,7 @@ Public Sub ExportImages()
       strQuad = varQuads(lngIndex)
 
       strQuadrat = Replace(strQuad, "Q", "", , , vbTextCompare)
+
       If MyGeneralOperations.CheckCollectionForKey(pQuadratNumColl, strQuadrat) Then
         strItem = pQuadratNumColl.Item(strQuadrat)
         strSite = strItem(0)
@@ -305,127 +315,141 @@ Public Sub ExportImages()
       Debug.Print "Checking '" & strQuad & "' [" & strYear & "]"
       DoEvents
 
-      If aml_func_mod.ExistFileDir(strOrig & "\" & strQuad & "\" & strQuad & "_" & strYear & "_C.shp") Or _
-          aml_func_mod.ExistFileDir(strOrig & "\" & strQuad & "\" & strQuad & "_" & strYear & "_D.shp") Then
+      strExportFilename = MyGeneralOperations.MakeUniquedBASEName(strSaveFolder & strFileHeader & "-" & _
+          strPlot & "_" & strYear & ".tif")
+      strExportFilename = strSaveFolder & strFileHeader & "-" & strPlot & "_" & strYear & ".tif"
+      strExportFilename = Replace(strExportFilename, " / ", "_")
 
-        strSaveFolder = strExportFolder & strFolder & "\"
-        strSaveFolder = Replace(strSaveFolder, " / ", "_")
+      If booOnlyDoSpecificQuadrats Then
+        booExportThisOne = CheckIfShouldExport(strQuadrat, varSpecificQuadrats) And Not aml_func_mod.ExistFileDir(strExportFilename)
+      Else
+        booExportThisOne = Not aml_func_mod.ExistFileDir(strExportFilename)
+      End If
 
-        strExportFilename = strSaveFolder & strFileHeader & "-" & strPlot & "_" & strYear & ".tif"
-        strExportFilename = Replace(strExportFilename, " / ", "_")
-        If Not aml_func_mod.FileExists(strExportFilename) Then
+      If booExportThisOne Then
 
-          Set pAreaColl = New Collection
-          Set pLegendColl = New Collection
-          Erase strLegendKeys
-          pLayersToDelete.RemoveAll
+        If aml_func_mod.ExistFileDir(strOrig & "\" & strQuad & "\" & strQuad & "_" & strYear & "_C.shp") Or _
+            aml_func_mod.ExistFileDir(strOrig & "\" & strQuad & "\" & strQuad & "_" & strYear & "_D.shp") Then
 
-          Set pFLayer = Margaret.MakeGridFLayer
-          pMxDoc.FocusMap.AddLayer pFLayer
-          pLayersToDelete.Add pFLayer
+          strSaveFolder = strExportFolder & strFolder & "\"
+          strSaveFolder = Replace(strSaveFolder, " / ", "_")
 
-          For lngWorkIndex = 0 To UBound(varWorkOrder)
+          strExportFilename = strSaveFolder & strFileHeader & "-" & strPlot & "_" & strYear & ".tif"
+          strExportFilename = Replace(strExportFilename, " / ", "_")
+          If Not aml_func_mod.FileExists(strExportFilename) Then
 
-            Erase strSpecies
-            strWorkOption = varWorkOrder(lngWorkIndex)
-            AddToAppropriateReport strWorkOption, strReport1, strReport2, "Checking '" & strQuad & "'" & vbCrLf
-            Set pPolyColl = ReturnAppropriatePolyCollection(strWorkOption, strPointPrefix, strPointSuffix, pPointFClass, _
-                  lngPointSpeciesIndex, strPrefix, strSuffix, pFClass, lngSpeciesIndex, pQueryFilt, _
-                  booFoundSomething, strSpecies, strQuad, strYear, pLegendColl, strLegendKeys, _
-                  pPointSymbols, pFillSymbols)
+            Set pAreaColl = New Collection
+            Set pLegendColl = New Collection
+            Erase strLegendKeys
+            pLayersToDelete.RemoveAll
 
-            If booFoundSomething Then
-              FillAppropriateCountStats strWorkOption, lngCount, lngHighCount, strHighQuad, _
-                  lngPointCount, lngPointHighCount, strPointHighQuad, strSpecies, strQuad
+            Set pFLayer = Margaret.MakeGridFLayer
+            pMxDoc.FocusMap.AddLayer pFLayer
+            pLayersToDelete.Add pFLayer
 
-              For lngIndex2 = 0 To UBound(strSpecies)
-                strVal = strSpecies(lngIndex2)
-                varPolys = pPolyColl.Item(strVal)
-                dblCumulative = 0
-                For lngIndex3 = 0 To UBound(varPolys)
-                  Set pPolygon = varPolys(lngIndex3)
-                  Set pArea = pPolygon
-                  dblArea = pArea.Area
-                  dblCumulative = dblCumulative + dblArea
-                Next lngIndex3
-                strObsCount = Format(UBound(varPolys) + 1, "#,##0") & _
-                    IIf(UBound(varPolys) = 0, " polygon", " polygons") & ", "
-                Debug.Print "  --> [" & strVal & "]: " & strObsCount & _
-                    "Area = " & Format(dblCumulative * 10000, "#,##0.000") & " sq. cm. (" & _
-                    Format(dblCumulative, "0.00%") & ")"
+            For lngWorkIndex = 0 To UBound(varWorkOrder)
 
-                If MyGeneralOperations.CheckCollectionForKey(pAreaColl, strVal) Then
-                  dblCurrentArea = pAreaColl.Item(strVal)
-                  pAreaColl.Remove strVal
-                Else
-                  dblCurrentArea = 0
-                End If
-                pAreaColl.Add dblCurrentArea + dblCumulative, strVal
-
-                AddToAppropriateReport strWorkOption, strReport1, strReport2, _
-                      "  --> [" & strVal & "]: " & strObsCount & _
-                      "Area = " & Format(dblCumulative * 10000, "#,##0.000") & " sq. cm. (" & _
-                      Format(dblCumulative / 100, "0.00%") & ")" & vbCrLf
-
-                Set pNewFClass = ReturnInMemoryFClassFromPolys(varPolys, strVal, strWorkOption)
-                Set pSubLayer = ReturnSymbolizedFLayer(pNewFClass, strWorkOption, pSymbol, strVal, lngIndex2, _
+              Erase strSpecies
+              strWorkOption = varWorkOrder(lngWorkIndex)
+              AddToAppropriateReport strWorkOption, strReport1, strReport2, "Checking '" & strQuad & "'" & vbCrLf
+              Set pPolyColl = ReturnAppropriatePolyCollection(strWorkOption, strPointPrefix, strPointSuffix, pPointFClass, _
+                    lngPointSpeciesIndex, strPrefix, strSuffix, pFClass, lngSpeciesIndex, pQueryFilt, _
+                    booFoundSomething, strSpecies, strQuad, strYear, pLegendColl, strLegendKeys, _
                     pPointSymbols, pFillSymbols)
-                pLayersToDelete.Add pSubLayer
-                pMxDoc.FocusMap.AddLayer pSubLayer
 
-              Next lngIndex2
-            Else
-              Debug.Print "  --> Found no " & strWorkOption & " Species..."
-              AddToAppropriateReport strWorkOption, strReport1, strReport2, _
-                  "  --> Found no " & strWorkOption & " Species..." & vbCrLf
-              FillAppropriateCountStatsIfZero strWorkOption, lngHighCount, strHighQuad, lngPointHighCount, _
-                  strPointHighQuad, lngCount, lngPointCount, strQuad
+              If booFoundSomething Then
+                FillAppropriateCountStats strWorkOption, lngCount, lngHighCount, strHighQuad, _
+                    lngPointCount, lngPointHighCount, strPointHighQuad, strSpecies, strQuad
+
+                For lngIndex2 = 0 To UBound(strSpecies)
+                  strVal = strSpecies(lngIndex2)
+                  varPolys = pPolyColl.Item(strVal)
+                  dblCumulative = 0
+                  For lngIndex3 = 0 To UBound(varPolys)
+                    Set pPolygon = varPolys(lngIndex3)
+                    Set pArea = pPolygon
+                    dblArea = pArea.Area
+                    dblCumulative = dblCumulative + dblArea
+                  Next lngIndex3
+                  strObsCount = Format(UBound(varPolys) + 1, "#,##0") & _
+                      IIf(UBound(varPolys) = 0, " polygon", " polygons") & ", "
+                  Debug.Print "  --> [" & strVal & "]: " & strObsCount & _
+                      "Area = " & Format(dblCumulative * 10000, "#,##0.000") & " sq. cm. (" & _
+                      Format(dblCumulative, "0.00%") & ")"
+
+                  If MyGeneralOperations.CheckCollectionForKey(pAreaColl, strVal) Then
+                    dblCurrentArea = pAreaColl.Item(strVal)
+                    pAreaColl.Remove strVal
+                  Else
+                    dblCurrentArea = 0
+                  End If
+                  pAreaColl.Add dblCurrentArea + dblCumulative, strVal
+
+                  AddToAppropriateReport strWorkOption, strReport1, strReport2, _
+                        "  --> [" & strVal & "]: " & strObsCount & _
+                        "Area = " & Format(dblCumulative * 10000, "#,##0.000") & " sq. cm. (" & _
+                        Format(dblCumulative / 100, "0.00%") & ")" & vbCrLf
+
+                  Set pNewFClass = ReturnInMemoryFClassFromPolys(varPolys, strVal, strWorkOption)
+                  Set pSubLayer = ReturnSymbolizedFLayer(pNewFClass, strWorkOption, pSymbol, strVal, lngIndex2, _
+                      pPointSymbols, pFillSymbols)
+                  pLayersToDelete.Add pSubLayer
+                  pMxDoc.FocusMap.AddLayer pSubLayer
+
+                Next lngIndex2
+              Else
+                Debug.Print "  --> Found no " & strWorkOption & " Species..."
+                AddToAppropriateReport strWorkOption, strReport1, strReport2, _
+                    "  --> Found no " & strWorkOption & " Species..." & vbCrLf
+                FillAppropriateCountStatsIfZero strWorkOption, lngHighCount, strHighQuad, lngPointHighCount, _
+                    strPointHighQuad, lngCount, lngPointCount, strQuad
+              End If
+              AddToAppropriateReport strWorkOption, strReport1, strReport2, vbCrLf
+
+            Next lngWorkIndex
+
+            Call CreateCornerTab
+            Call InsertHeaderInfo(strSiteName, strPlotName, strCrewName, strPhoto, strDate, strUTME, strUTMN, _
+                strComment, strElev, strQuad)
+            Debug.Print "Found " & CStr(pLegendColl.Count) & " total species for Quadrat " & strQuad & "."
+
+            If pLegendColl.Count > lngMaxAllSpeciesCount Then
+              lngMaxAllSpeciesCount = pLegendColl.Count
+              strMaxAllSpeciesQuad = strQuad
             End If
-            AddToAppropriateReport strWorkOption, strReport1, strReport2, vbCrLf
 
-          Next lngWorkIndex
+              Call ConstructLegend(pLegendColl, strLegendKeys, pAreaColl, pMxDoc)
 
-          Call CreateCornerTab
-          Call InsertHeaderInfo(strSiteName, strPlotName, strCrewName, strPhoto, strDate, strUTME, strUTMN, _
-              strComment, strElev, strQuad)
-          Debug.Print "Found " & CStr(pLegendColl.Count) & " total species for Quadrat " & strQuad & "."
-
-          If pLegendColl.Count > lngMaxAllSpeciesCount Then
-            lngMaxAllSpeciesCount = pLegendColl.Count
-            strMaxAllSpeciesQuad = strQuad
-          End If
-
-            Call ConstructLegend(pLegendColl, strLegendKeys, pAreaColl, pMxDoc)
-
-          pMxDoc.UpdateContents
-          pMxDoc.ActiveView.Refresh
-
-          If aml_func_mod.ExistFileDir(strOrig & "\" & strQuad & "\" & strQuad & "_" & strYear & "_C.shp") Or _
-              aml_func_mod.ExistFileDir(strOrig & "\" & strQuad & "\" & strQuad & "_" & strYear & "_D.shp") Then
-
-            strSaveFolder = strExportFolder & strFolder & "\"
-            strSaveFolder = Replace(strSaveFolder, " / ", "_")
-            MyGeneralOperations.CreateNestedFoldersByPath (strSaveFolder)
-
-            strExportFilename = MyGeneralOperations.MakeUniquedBASEName(strSaveFolder & strFileHeader & "-" & _
-                strPlot & "_" & strYear & ".tif")
-            strExportFilename = strSaveFolder & strFileHeader & "-" & strPlot & "_" & strYear & ".tif"
-            strExportFilename = Replace(strExportFilename, " / ", "_")
-            If Not aml_func_mod.ExistFileDir(strExportFilename) Then
-              Map_Module.ExportActiveView strExportFilename, True, False
-            End If
-          End If
-
-          For lngDeleteIndex = 0 To pLayersToDelete.Count - 1
-            Set pFLayer = pLayersToDelete.Element(lngDeleteIndex)
-            pMxDoc.FocusMap.DeleteLayer pFLayer
-            Set pDataset = pFLayer.FeatureClass
-            pDataset.DELETE
-            Set pFLayer = Nothing
-            Set pDataset = Nothing
             pMxDoc.UpdateContents
             pMxDoc.ActiveView.Refresh
-          Next lngDeleteIndex
+
+            If aml_func_mod.ExistFileDir(strOrig & "\" & strQuad & "\" & strQuad & "_" & strYear & "_C.shp") Or _
+                aml_func_mod.ExistFileDir(strOrig & "\" & strQuad & "\" & strQuad & "_" & strYear & "_D.shp") Then
+
+              strSaveFolder = strExportFolder & strFolder & "\"
+              strSaveFolder = Replace(strSaveFolder, " / ", "_")
+              MyGeneralOperations.CreateNestedFoldersByPath (strSaveFolder)
+
+              strExportFilename = MyGeneralOperations.MakeUniquedBASEName(strSaveFolder & strFileHeader & "-" & _
+                  strPlot & "_" & strYear & ".tif")
+              strExportFilename = strSaveFolder & strFileHeader & "-" & strPlot & "_" & strYear & ".tif"
+              strExportFilename = Replace(strExportFilename, " / ", "_")
+              If Not aml_func_mod.ExistFileDir(strExportFilename) Then
+                Map_Module.ExportActiveView strExportFilename, True, False
+              End If
+            End If
+
+            For lngDeleteIndex = 0 To pLayersToDelete.Count - 1
+              Set pFLayer = pLayersToDelete.Element(lngDeleteIndex)
+              pMxDoc.FocusMap.DeleteLayer pFLayer
+              Set pDataset = pFLayer.FeatureClass
+              pDataset.DELETE
+              Set pFLayer = Nothing
+              Set pDataset = Nothing
+              pMxDoc.UpdateContents
+              pMxDoc.ActiveView.Refresh
+            Next lngDeleteIndex
+          End If
         End If
       End If
     Next lngIndex
@@ -520,6 +544,47 @@ ClearMemory:
   Erase strLegendKeys
 
 End Sub
+
+Public Sub ClearAnyInitialData()
+
+  Dim pMxDoc As IMxDocument
+  Set pMxDoc = ThisDocument
+  Dim pLayer As ILayer
+  Dim pLayers As esriSystem.IArray
+  Set pLayers = New esriSystem.Array
+  Dim lngIndex As Long
+  For lngIndex = 0 To pMxDoc.FocusMap.LayerCount - 1
+    Set pLayer = pMxDoc.FocusMap.Layer(lngIndex)
+    If pLayer.Name <> "Box" And pLayer.Name <> "Sample Grid" Then
+      pLayers.Add pLayer
+    End If
+  Next lngIndex
+
+  If pLayers.Count > 0 Then
+    For lngIndex = 0 To pLayers.Count - 1
+      Set pLayer = pLayers.Element(lngIndex)
+      pMxDoc.FocusMap.DeleteLayer pLayer
+    Next lngIndex
+  End If
+
+  pMxDoc.UpdateContents
+
+  Debug.Print "Done clearing layers..."
+
+End Sub
+
+Public Function CheckIfShouldExport(strQuadrat As String, varSpecific() As Variant) As Boolean
+
+  CheckIfShouldExport = False
+  Dim lngIndex As Long
+  For lngIndex = 0 To UBound(varSpecific)
+    If strQuadrat = CStr(varSpecific(lngIndex)) Then
+      CheckIfShouldExport = True
+      Exit For
+    End If
+  Next lngIndex
+
+End Function
 
 Public Sub MakePageNumbers(Optional pPageNumberByPlotDate As Collection)
 
